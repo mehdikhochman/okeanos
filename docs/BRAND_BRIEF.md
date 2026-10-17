@@ -25,7 +25,9 @@ Source material for the Okeanós website, taken from
 | Instagram category | Design & fashion (professional account, not verified) |
 | Ordering | **By Instagram DM only.** No link in bio, website, email or phone on the profile. |
 | Followers / following / posts | 206 / 0 / 38 |
-| Story highlights | 7 (names and contents unread, **TO CONFIRM**) |
+| Story highlights | 7. Seen so far (screenshots from the client): **Rings**, **Hand chains**, **Guide**, **Winter 2025**. The other 3 are still unknown. |
+| Production | **Made to order:** "every piece is made upon request" (Guide highlight) |
+| Returns | **No returns or exchanges.** Free resizing if the piece doesn't fit (Guide highlight). |
 | Latest post | 2025-07-29. Nothing posted for about 15 months. **Confirm the current catalogue with the client.** |
 | Prices | **Never shown publicly.** None in captions, and comments were not readable. |
 
@@ -100,20 +102,35 @@ stock are blank because they aren't public.
 
 ---
 
-## 3. Unconfirmed lead: okeanosjewellery.co
+## 3. The brand's own guide (Instagram "Guide" highlight)
 
-[okeanosjewellery.co](https://www.okeanosjewellery.co/customer-care-policies)
-uses **the same spelling, "Ōkeanós"**, and the **same materials** (stainless steel
-with 18K gold plating). That makes it a probable match, but the Instagram profile
-doesn't link to it. If the client confirms it, its policy page adds:
+The client shared screenshots of the four-slide Guide highlight, posted about 119
+weeks before 2026-10-17. The slides are navy or light grey, with the text in
+capitals in a serif face, matching the site palette. The text below is the
+substance of each slide, in sentence case:
 
-- Steel grade: 304 and/or 316L, depending on the design
-- Many pieces are waterproof, tarnish-resistant and hypoallergenic
-- A lifetime colour warranty, a 6-month warranty and a 30-day replacement guarantee
-- Care: avoid harsh chemicals, take pieces off for heavy exercise and sleep,
-  and store them somewhere cool and dry
+1. **Title:** "Everything you need to know about Okeanós Jewels"
+2. **What do you need to know about Okeanós jewelry?** "Our pieces are designed
+   and created by us, and all our products are stainless steel & gold plated."
+3. **How can my jewelry last longer?**
+   - Don't wear it 24/7, because constant wear reduces the life of the pieces.
+   - Apply products like perfume and lotion before putting it on.
+   - Remove jewellery before showering, swimming, sports and sleep, so it stays
+     "as the day you received it".
+4. **Can I return or exchange?**
+   - No: "you cannot return or exchange your orders as every piece is made upon request."
+   - If the size doesn't fit, "you can give it back to us and we will fix the size for free."
 
-The build environment still blocks this site.
+The prototype uses all of this: the Guide section, the product accordions, the
+announcement strip and the "Made to order, free resizing" note.
+
+### okeanosjewellery.co is probably a different business
+
+That site uses the same spelling, "Ōkeanós", but its policies contradict the
+guide. It promises waterproof pieces and a 30-day replacement guarantee. The
+Instagram guide says to take pieces off before showering and swimming, and that
+nothing can be returned or exchanged. **Do not use anything from that site.**
+Ask the client once to rule it out.
 
 ---
 
@@ -121,7 +138,8 @@ The build environment still blocks this site.
 
 ★ = the site can't launch without it.
 
-- [ ] ★ Confirm okeanosjewellery.co is theirs, and whether it is still live
+- [ ] Confirm okeanosjewellery.co is **not** theirs (its policies contradict the Guide)
+- [ ] Ring sizing: which sizes they make, and how a customer gives their size when ordering
 - [ ] ★ **Prices** (LBP, USD or both?), variants (hoop colourways, ring sizes),
       stock and the current catalogue (the feed is about 15 months old)
 - [ ] ★ Names for the unnamed pieces (section 2, rows 9–12)
@@ -129,7 +147,8 @@ The build environment still blocks this site.
       checkout?
 - [ ] ★ Delivery: Lebanon only or international? Cost and cash on delivery?
 - [ ] ★ Contact: WhatsApp number and email
-- [ ] The 7 highlight names and the 26 older posts (screenshots or an Instagram
+- [ ] Contents of the Rings, Hand chains and Winter 2025 highlights, the other 3
+      highlight names, and the 26 older posts (screenshots or an Instagram
       data export: Settings → Accounts Center → Your information and permissions →
       Download your information)
 - [ ] Logo source file and font
