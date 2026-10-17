@@ -4,12 +4,12 @@ Source material for the Okeanós website, taken from
 [@okeanosjewels](https://www.instagram.com/okeanosjewels/) on 2026-10-17.
 
 > **Coverage.** Without logging in, Instagram returns the profile and the
-> **12 most recent of 38 posts** (2025-07-19 → 2025-07-29). The 26 older posts,
-> the 7 story highlights and comments require a login and were not read. Post
-> images are served from `*.cdninstagram.com`, which the build environment's network
-> policy still blocks, so the product descriptions below come from captions only.
-> Items marked **TO CONFIRM** need the client or a logged-in look. Nothing has
-> been invented.
+> **12 most recent of 38 posts** (2025-07-19 → 2025-07-29), with all 36 photos.
+> Those photos are saved in `assets/instagram/`, named `<post code>_<slide>.jpg`.
+> A login attempt with the account details the client gave was rejected by
+> Instagram ("login information incorrect"), so the **26 older posts, the 7 story
+> highlights and comments are still unread**. Items marked **TO CONFIRM** need
+> the client. Nothing has been invented.
 
 ---
 
@@ -21,28 +21,42 @@ Source material for the Okeanós website, taken from
 | Handle | `@okeanosjewels` |
 | Bio | "Beirut, Lebanon / 18k Gold Plated & Stainless Steel Jewelry / Dm to Place Your Orders!" |
 | Location | Beirut, Lebanon |
-| Materials | 18k gold-plated stainless steel. One post also mentions **rose gold**. |
+| Materials | 18k gold-plated stainless steel. One post says "rose gold". Some pieces add enamel or beads. |
 | Instagram category | Design & fashion (professional account, not verified) |
 | Ordering | **By Instagram DM only.** No link in bio, website, email or phone on the profile. |
 | Followers / following / posts | 206 / 0 / 38 |
-| Story highlights | 7 (names and contents need a login, **TO CONFIRM**) |
+| Story highlights | 7 (names and contents unread, **TO CONFIRM**) |
 | Latest post | 2025-07-29. Nothing posted for about 15 months. **Confirm the current catalogue with the client.** |
 | Prices | **Never shown publicly.** None in captions, and comments were not readable. |
 
-### Voice and mood (from captions)
+### Voice and mood
 
 - Short, lowercase product names: "cluster earrings", "organic rings", "new in".
 - Summer, social and playful: 🪭 🥂 🌤️ 🍒 🌺 ✨ 🌿, with "Match with your friend!" and
   "Your favorite hand chain is back!"
 - Recurring phrases: "Available now", "New in", "Dm for orders".
 - Reels use Afro-house and Arabic pop: *Yamore* (MoBlack, Salif Keïta, Cesária
-  Évora) and *Tamally Maak* (Amr Diab). The audience is Lebanese and Mediterranean,
-  young, and dressing for summer evenings out.
+  Évora) and *Tamally Maak* (Amr Diab).
+
+### Photography style (from the 36 photos)
+
+The feed uses two consistent kinds of shot:
+
+1. **Flat-lays on white crumpled linen.** A single piece, centred, in soft daylight.
+   The white background makes these easy to cut out for the site.
+2. **Golden-hour shots on the Lebanese coast.** Models in white linen or pastel
+   pink tie-dye, with pebble beaches, limestone rocks, the sea and warm sun on
+   skin. Props: a folding fan, white sunglasses. Typical framing is a hand at the
+   neck or cheek, so earrings, rings and bracelets all show in one shot.
+
+The **design** is chunky, sculptural, "molten" gold: puffy drops, wavy hoops,
+wrap rings, leaf and flower shapes, mixed with fine chains and pastel accents
+(mint enamel, beads).
 
 So the brand has two sides: the **wordmark image is cool, minimal and gallery-like**,
-and the **feed is warm, summery and social**. The site plan joins them with the
-grey plaster and navy as the frame and the gold pieces as the warmth (see
-`FRONTEND_PLAN.md`).
+and the **feed is warm white linen with golden sunlight**. The site uses the
+grey plaster and navy as the frame and the gold pieces and sunlit photos as the
+warmth (see `FRONTEND_PLAN.md`).
 
 ### Wordmark (from `assets/brand/instagram-wordmark-reference.jpg`)
 
@@ -55,30 +69,34 @@ grey plaster and navy as the frame and the gold pieces as the warmth (see
 
 ---
 
-## 2. Products seen in the 12 most recent posts
+## 2. Products in the 12 most recent posts
 
-Names are exactly as captioned. "Unnamed" means the caption gives no product name.
+Names are exactly as captioned. Descriptions come from the photos.
 
-| # | Product | Type | Notes | Posts |
+| # | Product (caption name) | Type | What the photos show | Photos (`assets/instagram/`) |
 |---|---|---|---|---|
-| 1 | **Hand chain** | Hand chain | Called "our best selling hand chain" and "Your favorite hand chain is back!" (it was restocked) | [DMYERJ6MmlI](https://www.instagram.com/p/DMYERJ6MmlI/), [DMflnuQMd3h](https://www.instagram.com/p/DMflnuQMd3h/) |
-| 2 | **Summer hoops** | Earrings (hoops) | "Match with your friend!" Styled with the hand chain. | [DMSkuxiMeaq](https://www.instagram.com/p/DMSkuxiMeaq/), [DMYERJ6MmlI](https://www.instagram.com/p/DMYERJ6MmlI/) |
-| 3 | **Loop Bangle** | Bangle | | [DMnLeyDsuVS](https://www.instagram.com/p/DMnLeyDsuVS/) |
-| 4 | **Cluster earrings** | Earrings | | [DMflv7RM8FC](https://www.instagram.com/p/DMflv7RM8FC/) |
-| 5 | **Era earrings** | Earrings | | [DMVYxotMCLq](https://www.instagram.com/p/DMVYxotMCLq/) |
-| 6 | **Flowers earrings** | Earrings | | [DMSk5HlsS_K](https://www.instagram.com/p/DMSk5HlsS_K/) |
-| 7 | **Organic rings** | Rings | Plural, so probably several designs (3 photos) | [DMYZPxmMPJS](https://www.instagram.com/p/DMYZPxmMPJS/) |
-| 8 | **Rose gold rings** | Rings | "Our new rose gold rings", 4 photos | [DMVYoCYsFC8](https://www.instagram.com/p/DMVYoCYsFC8/) |
-| 9 | Unnamed bangles, ring and earrings | Bangles, ring, earrings | "New pieces to complete your summer look". May include the Loop Bangle. | [DMnLYtns6xk](https://www.instagram.com/p/DMnLYtns6xk/) |
-| 10 | Unnamed earrings and necklace | Earrings, necklace | Launched alongside the hand chain restock | [DMflnuQMd3h](https://www.instagram.com/p/DMflnuQMd3h/) |
-| 11 | Unnamed, "Available now" | ? | 4 photos | [DMsDbsas31f](https://www.instagram.com/p/DMsDbsas31f/) |
-| 12 | Unnamed, "new in" | ? | 2 photos | [DMs6LVlMzue](https://www.instagram.com/p/DMs6LVlMzue/) |
+| 1 | **Hand chain**, their best seller, restocked | Hand chain | Fine gold chain from wrist to finger with a small heart charm on the back of the hand | `DMflnuQMd3h_1–4`, `DMYERJ6MmlI_1,5`, `DMsDbsas31f_1` |
+| 2 | **Summer hoops** ("Match with your friend!") | Earrings (hoops) | Small hoops packed with irregular beads or chips. At least **2 colourways: white/pearl and pastel multicolour** (pink, blue, lilac). Shown as a friends' pair. | `DMSkuxiMeaq_1–5`, `DMYERJ6MmlI_1–5` |
+| 3 | **Loop Bangle** | Bangle (open cuff) | Gold cuff of linked oval loops with ridged ends | `DMnLeyDsuVS_1`, worn in `DMnLYtns6xk_1–4` |
+| 4 | **Cluster earrings** | Earrings | Puffy, high-shine gold drop or teardrop hoops on post backs | `DMflv7RM8FC_1` (similar pair worn in `DMflnuQMd3h_1–4`) |
+| 5 | **Era earrings** | Earrings (hoops) | Chunky wavy "bamboo" hoops with a hinged closure | `DMVYxotMCLq_1` |
+| 6 | **Flowers earrings** | Earrings (studs) | Five-petal flower studs in **mint/aqua enamel** with gold edges and a gold centre | `DMSk5HlsS_K_1–2` |
+| 7 | **Organic rings** | Rings (open, adjustable) | At least 2 designs: **(a)** a wrap ring with one flattened, spoon-like end; **(b)** a double-band bypass ring with rounded ends | `DMYZPxmMPJS_1–3` |
+| 8 | **Rose gold rings** | Rings | Thin stacking rings, including a **zigzag/wave band** and a dotted band. Styled with a multi-strand textured bangle and small chunky hoops. | `DMVYoCYsFC8_1–4` |
+| 9 | Unnamed, "new in" | Earrings (statement studs) | Large sculpted **leaf/petal** studs in polished gold | `DMs6LVlMzue_1–2` |
+| 10 | Unnamed, "summer look" set | Bangle, ring, earrings | The Loop Bangle stacked with a smooth bangle, a wide band ring, and twisted molten **drop earrings** | `DMnLYtns6xk_1–4` |
+| 11 | Unnamed, "Available now" | Ring, earrings, bracelets | A molten **dome/drop ring**, small chunky hoops, a curb-chain bracelet and a T-bar bangle, worn with the hand chain | `DMsDbsas31f_1–4` |
+| 12 | Unnamed necklace | Necklace | Fine gold chain with small evenly spaced beads (a satellite chain) | `DMflnuQMd3h_1–4` |
 
-**Categories the site needs:** earrings (hoops, cluster, statement), rings,
+**At least 16 distinct pieces** are visible. The client needs to name the
+unnamed ones (9–12) and confirm whether "rose gold" refers to the plating or
+just the post.
+
+**Site categories:** earrings (hoops, studs, drops), rings, bracelets and
 bangles, hand chains and necklaces.
 
-`docs/products-template.csv` is pre-filled with these rows. Prices, variants, stock
-and descriptions are blank because they aren't public.
+`docs/products-template.csv` is pre-filled with these rows. Prices, variants and
+stock are blank because they aren't public.
 
 ---
 
@@ -95,8 +113,7 @@ doesn't link to it. If the client confirms it, its policy page adds:
 - Care: avoid harsh chemicals, take pieces off for heavy exercise and sleep,
   and store them somewhere cool and dry
 
-The environment also blocks this site. Add `www.okeanosjewellery.co` to the
-allowed domains to pull its catalogue.
+The build environment still blocks this site.
 
 ---
 
@@ -105,23 +122,27 @@ allowed domains to pull its catalogue.
 ★ = the site can't launch without it.
 
 - [ ] ★ Confirm okeanosjewellery.co is theirs, and whether it is still live
-- [ ] ★ **Prices** (LBP, USD or both?), variants, stock and the current catalogue
-      (the feed is about 15 months old)
+- [ ] ★ **Prices** (LBP, USD or both?), variants (hoop colourways, ring sizes),
+      stock and the current catalogue (the feed is about 15 months old)
+- [ ] ★ Names for the unnamed pieces (section 2, rows 9–12)
 - [ ] ★ How orders work on the site: keep DM/WhatsApp ordering, or add a cart and
-      checkout? This decides the commerce architecture.
+      checkout?
 - [ ] ★ Delivery: Lebanon only or international? Cost and cash on delivery?
 - [ ] ★ Contact: WhatsApp number and email
-- [ ] The 7 highlight names, which likely map to collections or info pages
-- [ ] The 26 older posts (products and names)
+- [ ] The 7 highlight names and the 26 older posts (screenshots or an Instagram
+      data export: Settings → Accounts Center → Your information and permissions →
+      Download your information)
 - [ ] Logo source file and font
-- [ ] Original product photos (see section 5). Instagram's copies are compressed and cropped.
+- [ ] Original full-resolution photos. The copies in `assets/instagram/` come
+      from Instagram (1080px, compressed) and are placeholders only.
 - [ ] Founder story, if they want an About page
 
 ## 5. Photography direction
 
-- Shoot every piece **on the same grey plaster wall** (`#D7D7D7`), lit from the
-  upper left with a soft cast shadow, so it matches the wordmark image.
-- One on-body shot per piece, keeping the warm summer feel of the feed.
-- Macro detail shots of the plating and texture.
-- A transparent PNG or WebP cut-out of every piece. The interactive wall in
-  `FRONTEND_PLAN.md` hangs these and gives them a live shadow.
+- **Keep both existing shot types.** They're consistent and on brand.
+  - White-linen flat-lays → product pages and cut-outs
+  - Golden-hour coast shots → hero moments, the About page, the lookbook strip
+- **For the interactive wall:** a transparent PNG or WebP cut-out of every piece.
+  The linen flat-lays mask easily. A new set shot on grey plaster (`#D7D7D7`),
+  lit from the upper left, would match the wordmark image exactly.
+- At least 3 images per piece: flat-lay, on-body and a macro detail.
