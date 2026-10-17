@@ -1,0 +1,65 @@
+// Every editable shop setting, in the order the admin form shows them.
+// The storefront and the admin form both read this list, so a new setting is added in one place.
+//
+// type: text | textarea | checkbox | select | money | phone
+
+export const SETTINGS_FIELDS = [
+  { group: 'Shop', key: 'brand_name', label: 'Brand name', type: 'text', max: 40, default: 'Ōkeanós' },
+  { group: 'Shop', key: 'wordmark', label: 'Logo text', type: 'text', max: 20, default: 'OKEANÓS',
+    help: 'Written in capitals across the brushstroke and in the header.' },
+  { group: 'Shop', key: 'announcement', label: 'Announcement strip', type: 'text', max: 160,
+    help: 'The thin bar at the very top of the site. Leave empty to hide it.',
+    default: 'Every piece is made to order. Order online, we deliver to your door.' },
+  { group: 'Shop', key: 'hero_line', label: 'Line under the logo', type: 'text', max: 120,
+    default: 'Gold-plated stainless steel jewellery from Beirut.' },
+  { group: 'Shop', key: 'shop_title', label: 'Shop title', type: 'text', max: 60, default: 'All pieces' },
+  { group: 'Shop', key: 'shop_intro', label: 'Shop introduction', type: 'text', max: 200,
+    default: 'Pieces in 18k gold-plated stainless steel, each one made when you order it.' },
+  { group: 'Shop', key: 'currency', label: 'Currency', type: 'select', options: ['USD', 'EUR', 'LBP'], default: 'USD' },
+
+  { group: 'Orders and delivery', key: 'orders_open', label: 'Accept new orders', type: 'checkbox', default: '1',
+    help: 'Untick to pause the shop (holidays). Visitors can still browse.' },
+  { group: 'Orders and delivery', key: 'orders_closed_message', label: 'Message while orders are paused', type: 'text', max: 200,
+    default: 'We are not taking new orders right now. Please check back soon.' },
+  { group: 'Orders and delivery', key: 'delivery_fee', label: 'Delivery fee', type: 'money',
+    help: 'Leave empty if the fee depends on the address. It is then confirmed by phone.', default: '' },
+  { group: 'Orders and delivery', key: 'delivery_areas', label: 'Where you deliver', type: 'text', max: 120,
+    default: 'Delivery across Lebanon.' },
+  { group: 'Orders and delivery', key: 'payment_note', label: 'How customers pay', type: 'text', max: 160,
+    default: 'Pay in cash when your order is delivered.' },
+  { group: 'Orders and delivery', key: 'order_confirmation_note', label: 'Message after an order', type: 'textarea', max: 400,
+    default: 'We will call or message you on WhatsApp to confirm your order and the delivery time.' },
+  { group: 'Orders and delivery', key: 'cities', label: 'Suggested cities', type: 'textarea', max: 1000,
+    help: 'One per line. Shown as suggestions in the checkout; customers can still type any city.',
+    default: 'Beirut\nJounieh\nByblos (Jbeil)\nTripoli\nSidon (Saida)\nTyre (Sour)\nZahle\nBaabda\nAley\nBatroun' },
+
+  { group: 'Policies', key: 'policy_ordering', label: 'Ordering', type: 'textarea', max: 600,
+    default: 'Every piece is made when you order it. Place your order on the site and we confirm it with you by phone or WhatsApp.' },
+  { group: 'Policies', key: 'policy_returns', label: 'Sizing and returns', type: 'textarea', max: 600,
+    default: "Made-to-order pieces can't be returned or exchanged. If the size doesn't fit, give the piece back and we will fix the size for free." },
+  { group: 'Policies', key: 'policy_care', label: 'Care', type: 'textarea', max: 600,
+    default: 'Put on perfume and lotion first, and take the piece off before showering, swimming, sport and sleep.' },
+
+  { group: 'Contact', key: 'whatsapp_number', label: 'WhatsApp number', type: 'phone',
+    help: 'International format without + or spaces, for example 96170123456.', default: '' },
+  { group: 'Contact', key: 'instagram_handle', label: 'Instagram account', type: 'text', max: 30,
+    pattern: '^[A-Za-z0-9._]*$', default: 'okeanosjewels' },
+  { group: 'Contact', key: 'contact_email', label: 'Contact email', type: 'text', max: 120,
+    pattern: '^$|^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$', default: '' },
+
+  { group: 'About section', key: 'about_1_title', label: 'Block 1 title', type: 'text', max: 60, default: 'Made by Ōkeanós' },
+  { group: 'About section', key: 'about_1_text', label: 'Block 1 text', type: 'textarea', max: 400,
+    default: 'Every piece is designed and made by Ōkeanós in stainless steel plated in 18k gold, once you order it.' },
+  { group: 'About section', key: 'about_2_title', label: 'Block 2 title', type: 'text', max: 60, default: 'From Beirut' },
+  { group: 'About section', key: 'about_2_text', label: 'Block 2 text', type: 'textarea', max: 400,
+    default: 'Ōkeanós designs and sells from Beirut, Lebanon. New pieces arrive in small drops, announced on Instagram.' },
+  { group: 'About section', key: 'about_3_title', label: 'Block 3 title', type: 'text', max: 60, default: 'Delivered to you' },
+  { group: 'About section', key: 'about_3_text', label: 'Block 3 text', type: 'textarea', max: 400,
+    default: 'Order on the site, and we bring your pieces to your door.' },
+
+  { group: 'Search engines', key: 'seo_title', label: 'Page title', type: 'text', max: 70,
+    default: 'Ōkeanós, gold-plated jewellery from Beirut' },
+  { group: 'Search engines', key: 'seo_description', label: 'Description', type: 'textarea', max: 160,
+    default: 'Earrings, rings, bangles and hand chains in 18k gold-plated stainless steel, made to order in Beirut.' },
+  { group: 'Search engines', key: 'footer_note', label: 'Small print in the footer', type: 'text', max: 200, default: '' },
+];
