@@ -5,10 +5,13 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..600;1,6..96,400&family=Instrument+Sans:wght@400;500;600&display=swap">
 <style>
 /* Layout: the whole site is one plaster wall (WebGL, fixed behind the page). A white
-   brushstroke runs down the hero; pieces hang below in a staggered salon hang, lit by
-   the same pointer-driven light. Single deliberate light look, no dark theme. */
+   brushstroke runs down the hero. Below it, a shop laid out for phones first: sticky
+   filter/sort bar, 2-column grid (4 on desktop), drawers for menu, filters, search and bag.
+   Pieces sit on lighter plaster tiles, lit by the same pointer-driven light.
+   Single deliberate light look, no dark theme. */
 :root {
   --plaster: #D6D8D9;
+  --tile: #E3E5E5;
   --stroke: #EEEEEC;
   --abyss: #032537;
   --tide: #2B5470;
@@ -16,6 +19,7 @@
   --shade: #A9ADB0;
   --gilt: #B8975A;
   --shadow-ink: rgba(3, 37, 55, .30);
+  --scrim: rgba(3, 37, 55, .32);
 
   --display: "Bodoni Moda", "Bodoni 72", Didot, "Didot LT STD", "Times New Roman", serif;
   --text: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
@@ -26,14 +30,15 @@
   --s1: 1.417rem;
   --s2: 1.889rem;
   --s3: 2.518rem;
-  --s4: 3.357rem;
 
   --gutter-l: max(16px, env(safe-area-inset-left, 0px));
   --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+  --bar-h: 60px;   /* kept in sync with the real header height by script */
   color-scheme: light;
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 body {
@@ -44,11 +49,17 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  z-index: 30; background: var(--plaster);
+}
 img { max-width: 100%; display: block; }
 a { color: var(--tide); text-underline-offset: .2em; text-decoration-thickness: 1px; }
 a:hover { color: var(--abyss); }
 :focus-visible { outline: 2px solid var(--tide); outline-offset: 3px; }
-button { font: inherit; color: inherit; }
+button, select, input { font: inherit; color: inherit; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+svg.i { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
 
 #wall {
   position: fixed; inset: 0; width: 100%; height: 100%;
@@ -56,42 +67,61 @@ button { font: inherit; color: inherit; }
 }
 .page { position: relative; z-index: 1; }
 .wrap {
-  max-width: 1240px; margin-inline: auto;
+  max-width: 1360px; margin-inline: auto;
   padding-left: var(--gutter-l); padding-right: var(--gutter-r);
 }
 
-/* Header */
+/* Announcement strip */
+.announce {
+  background: var(--abyss); color: var(--stroke);
+  font-size: .85rem; text-align: center; padding-block: 8px;
+}
+.announce .wrap { display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; }
+.announce a { color: var(--stroke); }
+
+/* Header: phone = menu | logo | search bag; desktop adds a category row under the logo */
 .bar {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 20;
-  padding-top: env(safe-area-inset-top, 0px);
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
   transition: background-color .3s, box-shadow .3s;
 }
-.bar.solid { background: rgba(214, 216, 217, .86); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 1px 0 rgba(169, 173, 176, .5); }
-.bar .wrap { display: flex; align-items: center; gap: 24px; height: 60px; }
+.bar.solid { background: rgba(214, 216, 217, .97); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 1px 0 rgba(169, 173, 176, .6); }
+.bar-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: 60px; }
+.bar-left, .bar-right { display: flex; align-items: center; gap: 4px; }
+.bar-right { justify-content: flex-end; }
+.icon-btn {
+  position: relative; display: grid; place-items: center; width: 44px; height: 44px;
+  border: 0; background: none; cursor: pointer; color: var(--abyss); border-radius: 2px;
+}
+.icon-btn:hover { background: rgba(3, 37, 55, .06); }
+.count {
+  position: absolute; top: 6px; right: 4px; min-width: 17px; height: 17px; padding: 0 4px;
+  border-radius: 9px; background: var(--abyss); color: var(--stroke);
+  font-size: .68rem; line-height: 17px; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.count[hidden] { display: none; }
 .bar-mark {
-  font: 400 1.15rem/1 var(--display); letter-spacing: .14em; color: var(--abyss);
-  text-decoration: none; opacity: 0; transition: opacity .3s; margin-right: auto;
+  font: 400 1.25rem/1 var(--display); letter-spacing: .14em; padding-left: .14em;
+  color: var(--abyss); text-decoration: none; transition: opacity .3s;
 }
-.bar.solid .bar-mark { opacity: 1; }
-.bar nav { display: flex; gap: 22px; }
-.bar nav a { color: var(--abyss); text-decoration: none; font-size: .95rem; }
-.bar nav a:hover { text-decoration: underline; }
-.bag-btn {
-  border: 1px solid var(--abyss); background: transparent; border-radius: 2px;
-  padding: 6px 14px; cursor: pointer; font-size: .95rem; font-variant-numeric: tabular-nums;
+.bar:not(.solid) .bar-mark { opacity: 0; }
+.bar-nav { display: none; }
+@media (min-width: 1000px) {
+  .bar-row { height: 64px; }
+  .menu-btn { display: none; }
+  .bar-nav { display: flex; justify-content: center; gap: 30px; padding-bottom: 14px; }
+  .bar-nav a { color: var(--abyss); text-decoration: none; font-size: .93rem; }
+  .bar-nav a:hover { text-decoration: underline; }
 }
-.bag-btn:hover { background: var(--abyss); color: var(--stroke); }
-@media (max-width: 640px) { .bar nav { display: none; } .bar .wrap { gap: 12px; } }
 
 /* Hero */
-.hero { position: relative; height: clamp(560px, 94svh, 1000px); }
+.hero { position: relative; height: clamp(520px, calc(94svh - var(--bar-h)), 960px); }
 .no-gl .hero::before {
-  content: ""; position: absolute; left: 50%; top: 10%; bottom: 0; width: min(15%, 140px);
+  content: ""; position: absolute; left: 50%; top: 12%; height: 74%; width: min(15%, 140px);
   transform: translateX(-50%); background: linear-gradient(to bottom, var(--stroke) 75%, transparent);
   border-radius: 40% 40% 0 0 / 4% 4% 0 0;
 }
 .mark {
-  position: absolute; left: 0; right: 0; top: 52%; transform: translateY(-50%);
+  position: absolute; left: 0; right: 0; top: 46%; transform: translateY(-50%);
   margin: 0; text-align: center;
   font: 400 clamp(3.1rem, 11.5vw, 9.6rem)/1 var(--display);
   font-variation-settings: "opsz" 96;
@@ -104,190 +134,338 @@ button { font: inherit; color: inherit; }
   to { opacity: 1; letter-spacing: .075em; padding-left: .075em; filter: blur(0); }
 }
 .hero-foot {
-  position: absolute; left: 0; right: 0; bottom: 6%;
+  position: absolute; left: 0; right: 0; bottom: 5%;
   display: grid; justify-items: center; gap: 14px; text-align: center;
+  padding-left: var(--gutter-l); padding-right: var(--gutter-r);
   animation: fade-in .8s ease 2.1s both;
 }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-.hero-foot p { margin: 0; font-size: var(--s0); color: var(--abyss); max-width: 34ch; }
+.hero-foot p { margin: 0; max-width: 34ch; }
 .cta {
-  display: inline-block; background: var(--abyss); color: var(--stroke);
-  padding: 12px 26px; border-radius: 2px; text-decoration: none; font-weight: 500;
+  display: inline-flex; justify-content: center; align-items: center; gap: 8px;
+  background: var(--abyss); color: var(--stroke);
+  padding: 13px 26px; border-radius: 2px; text-decoration: none; font-weight: 500;
   border: 0; cursor: pointer;
 }
 .cta:hover { background: var(--tide); color: var(--stroke); }
+.ghost {
+  display: inline-flex; justify-content: center; align-items: center;
+  border: 1px solid var(--abyss); background: transparent; color: var(--abyss);
+  padding: 12px 20px; border-radius: 2px; cursor: pointer; text-decoration: none;
+}
+.ghost:hover { background: var(--abyss); color: var(--stroke); }
 .hint { font-size: var(--s-1); color: var(--silt); transition: opacity .6s; }
 .hint .touch { display: none; }
 @media (hover: none) { .hint .fine { display: none; } .hint .touch { display: inline; } }
 .hint.gone { opacity: 0; }
-@media (prefers-reduced-motion: reduce) {
-  .mark, .hero-foot { animation: none; }
-}
+@media (prefers-reduced-motion: reduce) { .mark, .hero-foot { animation: none; } }
 
 /* Section heads */
-.sec { padding-block: clamp(72px, 12vw, 140px) 0; }
-.sec-head { display: grid; gap: 12px; max-width: 60ch; }
+.sec { padding-block: clamp(56px, 10vw, 120px) 0; }
+.sec-head { display: grid; gap: 10px; max-width: 60ch; }
 .sec-head h2 {
   margin: 0; font: 400 var(--s3)/1.1 var(--display); font-variation-settings: "opsz" 72;
   text-wrap: balance;
 }
 .sec-head p { margin: 0; color: var(--silt); }
 
-/* Filters */
-.filters { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
-.filters button {
-  border: 1px solid var(--shade); background: transparent; border-radius: 2px;
-  padding: 6px 14px; cursor: pointer; font-size: .95rem; color: var(--silt);
+/* Shop toolbar: sticks under the header while browsing */
+.toolbar {
+  position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--bar-h)); z-index: 15;
+  margin-top: 24px; padding-block: 10px;
+  background: rgba(214, 216, 217, .97); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
 }
-.filters button[aria-pressed="true"] { border-color: var(--abyss); background: var(--abyss); color: var(--stroke); }
-.filters button:hover { border-color: var(--abyss); color: var(--abyss); }
-.filters button[aria-pressed="true"]:hover { color: var(--stroke); }
+.toolbar-in { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: center; }
+.filter-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: 46px;
+  border: 1px solid var(--shade); border-radius: 23px; background: rgba(238, 238, 236, .6); cursor: pointer;
+}
+.filter-btn:hover { border-color: var(--abyss); }
+.filter-btn .n { font-variant-numeric: tabular-nums; color: var(--tide); font-weight: 600; }
+.sort { position: relative; }
+.sort select {
+  width: 100%; height: 46px; appearance: none; -webkit-appearance: none;
+  border: 1px solid var(--shade); border-radius: 2px; background: rgba(238, 238, 236, .6);
+  padding: 0 40px 0 14px; cursor: pointer;
+}
+.sort svg { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; width: 18px; height: 18px; }
+.result-count { display: none; color: var(--silt); text-align: center; font-variant-numeric: tabular-nums; }
+@media (min-width: 760px) {
+  .toolbar-in { grid-template-columns: auto 1fr minmax(200px, 260px); }
+  .filter-btn { padding-inline: 22px; }
+  .result-count { display: block; }
+}
 
-/* Salon hang */
-.hang {
-  display: grid; grid-template-columns: repeat(12, minmax(0, 1fr));
-  column-gap: clamp(16px, 3vw, 40px); row-gap: clamp(40px, 6vw, 72px);
-  margin-top: clamp(40px, 6vw, 72px); align-items: start;
+/* Product grid */
+.grid {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px 14px; margin-top: 16px;
 }
-.piece {
-  grid-column: span var(--span, 3); margin-top: var(--drop, 0px);
-  display: grid; justify-items: center; gap: 14px;
-  background: none; border: 0; padding: 0; cursor: pointer; text-align: center;
+@media (min-width: 760px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px 22px; } }
+@media (min-width: 1100px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.card { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.card[hidden] { display: none; }
+.tile-wrap { position: relative; }
+.tile {
+  position: relative; display: block; width: 100%; aspect-ratio: 3 / 4; padding: 0; border: 0;
+  background: var(--tile); cursor: pointer; overflow: hidden;
 }
-.piece[hidden] { display: none; }
-.art {
-  position: relative; width: min(100%, var(--w, 100%));
-  transition: transform .35s cubic-bezier(.2, .7, .1, 1);
-}
-.art img {
-  width: 100%; height: auto;
+.tile .art { position: absolute; inset: 14% 12%; display: grid; place-items: center; }
+.tile .art img {
+  max-height: 100%; width: auto; object-fit: contain;
   filter: drop-shadow(var(--sx, 6px) var(--sy, 10px) var(--sb, 12px) var(--shadow-ink));
 }
 /* Warm glint where the wall's light falls on the gold, masked to the piece itself */
 .art.cut::after {
   content: ""; position: absolute; inset: 0; pointer-events: none;
-  -webkit-mask: var(--src) center / 100% 100% no-repeat; mask: var(--src) center / 100% 100% no-repeat;
+  -webkit-mask: var(--src) center / contain no-repeat; mask: var(--src) center / contain no-repeat;
   background: radial-gradient(circle at var(--lx, 30%) var(--ly, 20%), rgba(255, 244, 214, .75), rgba(184, 151, 90, .25) 28%, transparent 60%);
   mix-blend-mode: soft-light;
 }
-.art.frame {
-  background: var(--stroke); padding: clamp(8px, 1.2vw, 14px);
-  box-shadow: var(--sx, 6px) var(--sy, 10px) calc(var(--sb, 12px) * 1.4) var(--shadow-ink);
+.tile .cover, .tile .alt { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.tile .alt { opacity: 0; transition: opacity .45s ease; }
+@media (hover: hover) {
+  .tile-wrap:hover .alt, .tile:focus-visible .alt { opacity: 1; }
+  .tile-wrap:hover .quick, .tile-wrap:focus-within .quick { opacity: 1; transform: none; pointer-events: auto; }
 }
-.art.frame img { filter: none; aspect-ratio: 4 / 5; object-fit: cover; }
-.piece:hover .art, .piece:focus-visible .art { transform: translateY(-6px); }
-.piece:focus-visible { outline: none; }
-.piece:focus-visible .art { outline: 2px solid var(--tide); outline-offset: 8px; }
-.label { display: grid; gap: 2px; }
-.label b { font: 400 var(--s1)/1.2 var(--display); font-variation-settings: "opsz" 36; }
-.label span { font-size: .9rem; color: var(--silt); }
+.badge {
+  position: absolute; top: 10px; left: 10px; z-index: 2;
+  background: var(--stroke); color: var(--abyss); font-size: .8rem; line-height: 1;
+  padding: 6px 10px; border-radius: 12px;
+}
+.quick {
+  position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 3;
+  height: 42px; border: 0; border-radius: 2px; background: var(--abyss); color: var(--stroke);
+  cursor: pointer; opacity: 0; transform: translateY(8px); pointer-events: none;
+  transition: opacity .25s, transform .25s;
+}
+.quick:hover { background: var(--tide); }
+@media (hover: none) { .quick { display: none; } }
+@media (prefers-reduced-motion: reduce) { .tile .alt, .quick { transition: none; } }
+.meta { display: grid; gap: 3px; }
+.meta h3 { margin: 0; font: 400 1.18rem/1.2 var(--display); font-variation-settings: "opsz" 28; }
+.meta h3 button { all: unset; cursor: pointer; }
+.meta h3 button:focus-visible { outline: 2px solid var(--tide); outline-offset: 2px; }
+.meta p { margin: 0; font-size: .92rem; color: var(--silt); }
+.meta .price { color: var(--abyss); }
+.swatches { display: flex; gap: 8px; margin-top: 6px; }
+.sw {
+  width: 26px; height: 26px; border-radius: 50%; padding: 3px; cursor: pointer;
+  border: 1px solid transparent; background: none;
+}
+.sw span { display: block; width: 100%; height: 100%; border-radius: 50%; border: 1px solid rgba(3, 37, 55, .15); }
+.sw[aria-pressed="true"] { border-color: var(--abyss); }
 
-@media (max-width: 960px) {
-  .hang { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .piece { grid-column: span 3; margin-top: 0; }
-  .piece:nth-child(even) { margin-top: 48px; }
+/* Promo tile inside the grid */
+.promo {
+  position: relative; aspect-ratio: 3 / 4; overflow: hidden; display: grid; align-content: end;
+  color: var(--stroke); text-decoration: none; background: var(--abyss);
 }
-@media (max-width: 520px) {
-  .piece:nth-child(even) { margin-top: 36px; }
-  .label b { font-size: 1.15rem; }
-}
+.promo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.promo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(3, 37, 55, .78), transparent 58%); }
+.promo div { position: relative; z-index: 1; display: grid; gap: 10px; padding: 16px; justify-items: start; }
+.promo b { font: 400 clamp(1.3rem, 4.6vw, 1.9rem)/1.1 var(--display); }
+.promo span { font-size: .9rem; text-decoration: underline; text-underline-offset: .2em; }
+.promo:hover { color: var(--stroke); }
+.promo[hidden] { display: none; }
+.no-results { color: var(--silt); grid-column: 1 / -1; }
 
 /* Lookbook */
 .look {
-  display: flex; gap: clamp(14px, 2vw, 24px); overflow-x: auto; scroll-snap-type: x mandatory;
-  margin-top: 40px; padding-bottom: 18px;
+  display: flex; gap: clamp(12px, 2vw, 22px); overflow-x: auto; scroll-snap-type: x mandatory;
+  margin-top: 32px; padding-bottom: 18px;
   padding-left: var(--gutter-l); padding-right: var(--gutter-r);
   scrollbar-color: var(--shade) transparent;
 }
-.look figure { margin: 0; flex: 0 0 clamp(220px, 28vw, 340px); scroll-snap-align: start; display: grid; gap: 10px; }
+.look figure { margin: 0; flex: 0 0 clamp(220px, 70vw, 340px); scroll-snap-align: start; display: grid; gap: 10px; }
+@media (min-width: 760px) { .look figure { flex-basis: clamp(240px, 28vw, 340px); } }
 .look img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; }
 .look figcaption { font-size: .9rem; color: var(--silt); }
-.look-wrap { max-width: 1240px; margin-inline: auto; }
+.look-wrap { max-width: 1360px; margin-inline: auto; }
 
 /* About */
-.about { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: clamp(28px, 5vw, 64px); margin-top: 40px; }
+.about { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: clamp(28px, 5vw, 64px); margin-top: 36px; }
 .about div { display: grid; gap: 8px; align-content: start; }
 .about h3 { margin: 0; font: 400 var(--s2)/1.15 var(--display); font-variation-settings: "opsz" 48; }
 .about p { margin: 0; max-width: 46ch; }
 
-footer { padding-block: clamp(96px, 14vw, 160px) 40px; }
-footer .wrap { display: flex; flex-wrap: wrap; gap: 16px 32px; align-items: baseline; }
-footer .f-mark { font: 400 1.6rem/1 var(--display); letter-spacing: .14em; margin-right: auto; }
-footer small { flex-basis: 100%; color: var(--silt); font-size: var(--s-1); }
+footer { padding-block: clamp(80px, 12vw, 150px) 40px; }
+.foot { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 32px; }
+.foot h4 { margin: 0 0 10px; font: 400 1.15rem/1.2 var(--display); }
+.foot ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.foot a { color: var(--abyss); text-decoration: none; }
+.foot a:hover { text-decoration: underline; }
+.foot button.link { all: unset; cursor: pointer; }
+.foot button.link:hover { text-decoration: underline; }
+.foot-mark { font: 400 1.6rem/1 var(--display); letter-spacing: .14em; }
+.foot small { display: block; margin-top: 40px; color: var(--silt); font-size: var(--s-1); max-width: 70ch; }
 
-/* Panels (product + bag) */
-dialog.panel {
-  margin: 0 0 0 auto; height: 100%; max-height: none; width: min(560px, 100%);
+/* Drawers (menu, filters, search, product, bag) */
+dialog.drawer {
+  margin: 0; height: 100%; max-height: none; width: min(420px, 92vw); max-width: none;
   border: 0; padding: 0; background: var(--stroke); color: var(--abyss);
-  box-shadow: -20px 0 60px rgba(3, 37, 55, .18);
+  overscroll-behavior: contain;
 }
-dialog.panel::backdrop { background: rgba(3, 37, 55, .28); }
-dialog.panel[open] { animation: slide-in .35s cubic-bezier(.2, .7, .1, 1); }
-@keyframes slide-in { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { dialog.panel[open] { animation: none; } }
-.panel-in {
-  display: grid; gap: 22px; align-content: start; min-height: 100%;
-  padding: calc(20px + env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) calc(32px + env(safe-area-inset-bottom, 0px)) 24px;
+dialog.drawer.right { margin-left: auto; box-shadow: -20px 0 60px rgba(3, 37, 55, .18); }
+dialog.drawer.left { margin-right: auto; box-shadow: 20px 0 60px rgba(3, 37, 55, .18); }
+dialog.drawer.wide { width: min(620px, 100vw); }
+dialog.drawer.top { height: auto; width: 100%; margin-bottom: auto; box-shadow: 0 20px 60px rgba(3, 37, 55, .18); }
+dialog.drawer::backdrop { background: var(--scrim); }
+dialog.drawer.right[open] { animation: in-right .32s cubic-bezier(.2, .7, .1, 1); }
+dialog.drawer.left[open] { animation: in-left .32s cubic-bezier(.2, .7, .1, 1); }
+dialog.drawer.top[open] { animation: in-top .28s cubic-bezier(.2, .7, .1, 1); }
+@keyframes in-right { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes in-left { from { transform: translateX(-40px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes in-top { from { transform: translateY(-20px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { dialog.drawer[open] { animation: none; } }
+.d-in { display: flex; flex-direction: column; min-height: 100%; }
+.d-head {
+  position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; min-height: 60px; padding: env(safe-area-inset-top, 0px) 12px 0 20px;
+  background: var(--stroke); border-bottom: 1px solid rgba(169, 173, 176, .6);
 }
-.panel-top { display: flex; justify-content: space-between; align-items: center; }
-.close { border: 0; background: none; cursor: pointer; padding: 6px 0; text-decoration: underline; text-underline-offset: .2em; color: var(--silt); }
-.close:hover { color: var(--abyss); }
-.gallery-main { background: var(--plaster); aspect-ratio: 4 / 3; max-height: 44svh; width: 100%; display: grid; place-items: center; overflow: hidden; }
-.gallery-main img { width: 100%; height: 100%; object-fit: cover; }
-.gallery-main img.cut { object-fit: contain; padding: 12%; filter: drop-shadow(6px 10px 12px var(--shadow-ink)); }
-.thumbs { display: flex; gap: 8px; flex-wrap: wrap; }
-.thumbs button { border: 1px solid transparent; padding: 0; background: var(--plaster); cursor: pointer; width: 64px; height: 64px; }
-.thumbs button[aria-current="true"] { border-color: var(--abyss); }
-.thumbs img { width: 100%; height: 100%; object-fit: cover; }
-.thumbs img.cut { object-fit: contain; padding: 6px; }
-.p-name { margin: 0; font: 400 var(--s3)/1.05 var(--display); font-variation-settings: "opsz" 72; }
-.p-meta { display: grid; gap: 4px; color: var(--silt); }
-.p-meta p { margin: 0; }
-.p-desc { margin: 0; max-width: 46ch; }
-.price { font-variant-numeric: tabular-nums; color: var(--abyss); font-weight: 500; }
-fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 10px; }
-legend { padding: 0; margin-bottom: 10px; font-weight: 500; }
-.opts { display: flex; gap: 8px; flex-wrap: wrap; }
+.d-head h2 { margin: 0; font: 400 1.5rem/1.1 var(--display); }
+.d-head .crumb { font-size: .9rem; color: var(--silt); }
+.d-body { padding: 8px 20px 28px; display: grid; gap: 22px; align-content: start; flex: 1; }
+.d-foot {
+  position: sticky; bottom: 0; z-index: 2; display: grid; gap: 10px;
+  padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+  background: var(--stroke); border-top: 1px solid rgba(169, 173, 176, .6);
+}
+.d-foot.two { grid-template-columns: auto 1fr; align-items: center; }
+
+/* Menu drawer */
+.menu-list { list-style: none; margin: 0; padding: 0; }
+.menu-list li { border-bottom: 1px solid rgba(169, 173, 176, .6); }
+.menu-list button, .menu-list a {
+  all: unset; box-sizing: border-box; display: flex; justify-content: space-between; width: 100%;
+  padding: 18px 0; cursor: pointer; font-size: 1.05rem; color: var(--abyss);
+}
+.menu-list button:focus-visible, .menu-list a:focus-visible { outline: 2px solid var(--tide); outline-offset: -2px; }
+.menu-list .n { color: var(--silt); font-variant-numeric: tabular-nums; }
+.menu-extra { display: grid; gap: 12px; padding-top: 12px; }
+.menu-extra a { color: var(--abyss); }
+
+/* Filter drawer */
+details.acc { border-bottom: 1px solid rgba(169, 173, 176, .6); }
+details.acc summary {
+  list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+  padding: 18px 0; font-weight: 500;
+}
+details.acc summary::-webkit-details-marker { display: none; }
+details.acc summary svg { width: 18px; height: 18px; transition: transform .2s; }
+details.acc[open] summary svg { transform: rotate(180deg); }
+.acc-body { padding-bottom: 18px; display: grid; gap: 12px; }
+.check { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.check input { width: 18px; height: 18px; margin: 0; accent-color: var(--abyss); }
+.check .n { margin-left: auto; color: var(--silt); font-size: .9rem; font-variant-numeric: tabular-nums; }
+.dot { width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(3, 37, 55, .2); }
+.link-btn { border: 0; background: none; padding: 8px 0; cursor: pointer; text-decoration: underline; text-underline-offset: .2em; color: var(--abyss); }
+
+/* Search */
+.search-row { display: flex; align-items: center; gap: 8px; padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 10px 20px; }
+.search-row input {
+  flex: 1; height: 48px; border: 0; border-bottom: 1px solid var(--abyss); background: transparent;
+  font: 400 1.35rem var(--display); outline: none;
+}
+.search-row input:focus-visible { border-bottom-width: 2px; }
+.search-row input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.results { list-style: none; margin: 0; padding: 0 20px 20px; display: grid; gap: 6px; max-height: 60svh; overflow: auto; }
+.results button { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 56px 1fr; gap: 14px; align-items: center; width: 100%; padding: 6px 0; cursor: pointer; }
+.results button:focus-visible { outline: 2px solid var(--tide); }
+.results img { width: 56px; height: 56px; object-fit: contain; background: var(--tile); padding: 4px; }
+.results b { font: 400 1.1rem var(--display); display: block; }
+.results span { color: var(--silt); font-size: .9rem; }
+.results .empty { color: var(--silt); padding: 6px 0; }
+
+/* Product view */
+.slides {
+  display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
+  margin-inline: -20px; background: var(--tile);
+}
+.slides::-webkit-scrollbar { display: none; }
+.slide { flex: 0 0 100%; scroll-snap-align: center; aspect-ratio: 1; display: grid; place-items: center; position: relative; }
+.slide img { width: 100%; height: 100%; object-fit: cover; }
+.slide img.cut { object-fit: contain; padding: 14%; filter: drop-shadow(6px 10px 12px var(--shadow-ink)); }
+.slides-wrap { position: relative; }
+.slides-wrap .badge { left: -8px; }
+.dots { display: flex; justify-content: center; gap: 8px; margin-top: 12px; }
+.dots button { width: 8px; height: 8px; padding: 0; border-radius: 50%; border: 0; background: var(--shade); cursor: pointer; }
+.dots button[aria-current="true"] { background: var(--abyss); }
+.p-title { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+.p-title h3 { margin: 0; font: 400 var(--s2)/1.1 var(--display); font-variation-settings: "opsz" 60; }
+.p-title .price { white-space: nowrap; color: var(--abyss); }
+.p-desc { margin: 0; max-width: 50ch; }
+fieldset { border: 0; margin: 0; padding: 0; }
+legend { padding: 0; margin-bottom: 10px; font-size: .92rem; color: var(--silt); }
+legend b { color: var(--abyss); font-weight: 500; }
+.opts { display: flex; gap: 10px; flex-wrap: wrap; }
 .opts label { position: relative; }
 .opts input { position: absolute; opacity: 0; inset: 0; }
-.opts span { display: block; border: 1px solid var(--shade); padding: 6px 14px; border-radius: 2px; cursor: pointer; }
-.opts input:checked + span { border-color: var(--abyss); background: var(--abyss); color: var(--stroke); }
+.opts span { display: block; border: 1px solid var(--shade); padding: 8px 16px; border-radius: 2px; cursor: pointer; }
+.opts input:checked + span { border-color: var(--abyss); box-shadow: inset 0 0 0 1px var(--abyss); }
 .opts input:focus-visible + span { outline: 2px solid var(--tide); outline-offset: 2px; }
-.add-row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
-.status { color: var(--tide); font-size: .95rem; }
-.ig-link { font-size: .95rem; }
+.facts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: .9rem; color: var(--silt); }
+.facts div { display: flex; gap: 8px; align-items: flex-start; }
+.facts svg { width: 18px; height: 18px; flex: none; margin-top: 2px; stroke: var(--tide); }
+.status { color: var(--tide); font-size: .95rem; text-align: center; min-height: 1.4em; }
 
-.bag-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
-.bag-list li { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 14px; align-items: center; }
-.bag-list img { width: 64px; height: 64px; object-fit: contain; background: var(--plaster); padding: 4px; }
+/* Bag */
+.bag-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.bag-list li { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 14px; align-items: center; }
+.bag-list img { width: 72px; height: 90px; object-fit: contain; background: var(--tile); padding: 6px; }
 .bag-list b { font: 400 1.15rem/1.2 var(--display); display: block; }
 .bag-list span { color: var(--silt); font-size: .9rem; }
-.qty { display: flex; align-items: center; gap: 6px; }
-.qty button { width: 28px; height: 28px; border: 1px solid var(--shade); background: transparent; border-radius: 2px; cursor: pointer; }
-.qty output { min-width: 1.5ch; text-align: center; font-variant-numeric: tabular-nums; }
-.empty { color: var(--silt); margin: 0; }
+.qty { display: flex; align-items: center; border: 1px solid var(--shade); border-radius: 2px; }
+.qty button { width: 32px; height: 32px; border: 0; background: transparent; cursor: pointer; }
+.qty output { min-width: 2ch; text-align: center; font-variant-numeric: tabular-nums; }
+.empty-bag { color: var(--silt); margin: 0; }
 .msg {
-  width: 100%; min-height: 150px; resize: vertical; font: .95rem/1.5 var(--text); color: var(--abyss);
+  width: 100%; min-height: 140px; resize: vertical; font: .95rem/1.5 var(--text); color: var(--abyss);
   background: var(--plaster); border: 1px solid var(--shade); border-radius: 2px; padding: 12px;
 }
-.send { display: flex; flex-wrap: wrap; gap: 10px; }
-.ghost { border: 1px solid var(--abyss); background: transparent; color: var(--abyss); padding: 11px 20px; border-radius: 2px; cursor: pointer; text-decoration: none; }
-.ghost:hover { background: var(--abyss); color: var(--stroke); }
+.send-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .note { font-size: var(--s-1); color: var(--silt); margin: 0; }
 </style>
 
 <canvas id="wall" aria-hidden="true"></canvas>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></symbol>
+  <symbol id="i-bag" viewBox="0 0 24 24"><path d="M5 8h14l-1 13H6L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 7h10M17 7h4M3 17h4M11 17h10"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4V5Z"/></symbol>
+  <symbol id="i-gem" viewBox="0 0 24 24"><path d="M6 3h12l3 6-9 12L3 9l3-6Z"/><path d="M3 9h18"/></symbol>
+</svg>
+
 <div class="page">
+  <div class="announce"><div class="wrap"><span>No checkout needed.</span><span>Send your bag to Ōkeanós on WhatsApp or Instagram.</span></div></div>
+
   <header class="bar" id="bar">
     <div class="wrap">
-      <a class="bar-mark" href="#top" aria-label="Okeanós, back to top">OKEANÓS</a>
-      <nav aria-label="Sections">
-        <a href="#pieces">Pieces</a>
+      <div class="bar-row">
+        <div class="bar-left">
+          <button class="icon-btn menu-btn" type="button" id="menuBtn" aria-label="Open menu" aria-haspopup="dialog"><svg class="i"><use href="#i-menu"/></svg></button>
+        </div>
+        <a class="bar-mark" href="#top" aria-label="Okeanós, back to top">OKEANÓS</a>
+        <div class="bar-right">
+          <button class="icon-btn" type="button" id="searchBtn" aria-label="Search pieces" aria-haspopup="dialog"><svg class="i"><use href="#i-search"/></svg></button>
+          <button class="icon-btn" type="button" id="bagBtn" aria-label="Open bag, 0 pieces" aria-haspopup="dialog"><svg class="i"><use href="#i-bag"/></svg><span class="count" id="bagCount" hidden>0</span></button>
+        </div>
+      </div>
+      <nav class="bar-nav" aria-label="Shop">
+        <a href="#shop" data-cat="new">New in</a>
+        <a href="#shop" data-cat="earrings">Earrings</a>
+        <a href="#shop" data-cat="rings">Rings</a>
+        <a href="#shop" data-cat="bangles">Bangles</a>
+        <a href="#shop" data-cat="chains">Hand chains</a>
+        <a href="#shop" data-cat="necklaces">Necklaces</a>
         <a href="#lookbook">Lookbook</a>
         <a href="#about">About</a>
       </nav>
-      <button class="bag-btn" id="bagBtn" type="button" aria-haspopup="dialog">Bag (<span id="bagCount">0</span>)</button>
     </div>
   </header>
 
@@ -296,25 +474,34 @@ legend { padding: 0; margin-bottom: 10px; font-weight: 500; }
       <h1 class="mark">OKEANÓS</h1>
       <div class="hero-foot">
         <p>Gold-plated stainless steel jewellery from Beirut.</p>
-        <a class="cta" href="#pieces">See the pieces</a>
+        <a class="cta" href="#shop">Shop the pieces</a>
         <span class="hint" id="hint"><span class="fine">Move across the wall to light it</span><span class="touch">Touch the wall to light it</span></span>
       </div>
     </section>
 
-    <section class="sec" id="pieces" aria-labelledby="pieces-h">
+    <section class="sec" id="shop" aria-labelledby="shop-h">
       <div class="wrap">
         <div class="sec-head">
-          <h2 id="pieces-h">The pieces</h2>
-          <p>Choose what you like and add it to your bag. You send the list to Ōkeanós as a message, and they confirm price and delivery with you.</p>
+          <h2 id="shop-h">All pieces</h2>
+          <p>Summer 2025 pieces in 18k gold-plated steel. Add what you like to your bag and send it as a message.</p>
         </div>
-        <div class="filters" role="group" aria-label="Filter pieces">
-          <button type="button" data-f="all" aria-pressed="true">All</button>
-          <button type="button" data-f="earrings" aria-pressed="false">Earrings</button>
-          <button type="button" data-f="rings" aria-pressed="false">Rings</button>
-          <button type="button" data-f="wrist" aria-pressed="false">Bangles and chains</button>
-          <button type="button" data-f="neck" aria-pressed="false">Necklaces</button>
+      </div>
+      <div class="toolbar" id="toolbar">
+        <div class="wrap toolbar-in">
+          <button class="filter-btn" type="button" id="filterBtn" aria-haspopup="dialog"><svg class="i"><use href="#i-filter"/></svg>Filter <span class="n" id="filterN"></span></button>
+          <p class="result-count" id="resultCount" aria-live="polite"></p>
+          <label class="sort"><span class="sr">Sort by</span>
+            <select id="sort">
+              <option value="featured">Featured</option>
+              <option value="newest">Newest</option>
+              <option value="az">Name, A to Z</option>
+            </select>
+            <svg class="i"><use href="#i-down"/></svg>
+          </label>
         </div>
-        <div class="hang" id="hang"></div>
+      </div>
+      <div class="wrap">
+        <div class="grid" id="grid"></div>
       </div>
     </section>
 
@@ -354,49 +541,129 @@ legend { padding: 0; margin-bottom: 10px; font-weight: 500; }
 
   <footer>
     <div class="wrap">
-      <span class="f-mark">OKEANÓS</span>
-      <a href="https://www.instagram.com/okeanosjewels/" target="_blank" rel="noopener">@okeanosjewels on Instagram</a>
-      <span>Beirut, Lebanon</span>
+      <div class="foot">
+        <div><span class="foot-mark">OKEANÓS</span></div>
+        <div>
+          <h4>Shop</h4>
+          <ul>
+            <li><button class="link" type="button" data-cat="earrings">Earrings</button></li>
+            <li><button class="link" type="button" data-cat="rings">Rings</button></li>
+            <li><button class="link" type="button" data-cat="bangles">Bangles</button></li>
+            <li><button class="link" type="button" data-cat="chains">Hand chains</button></li>
+            <li><button class="link" type="button" data-cat="necklaces">Necklaces</button></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Ōkeanós</h4>
+          <ul>
+            <li><a href="#lookbook">Lookbook</a></li>
+            <li><a href="#about">About</a></li>
+            <li>Beirut, Lebanon</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Order</h4>
+          <ul>
+            <li><a href="https://www.instagram.com/okeanosjewels/" target="_blank" rel="noopener">@okeanosjewels on Instagram</a></li>
+            <li><a href="https://ig.me/m/okeanosjewels" target="_blank" rel="noopener">Send a DM</a></li>
+          </ul>
+        </div>
+      </div>
       <small>Prototype for review. Prices, some piece names, delivery and policies are still to be confirmed with Ōkeanós. Photos are from their Instagram.</small>
     </div>
   </footer>
 </div>
 
-<dialog class="panel" id="pPanel" aria-labelledby="pName">
-  <div class="panel-in">
-    <div class="panel-top"><span class="note" id="pType"></span><button class="close" type="button" data-close>Close</button></div>
-    <div class="gallery-main"><img id="pMain" alt=""></div>
-    <div class="thumbs" id="pThumbs"></div>
-    <h2 class="p-name" id="pName"></h2>
-    <div class="p-meta">
-      <p class="price">Price on request</p>
-      <p id="pMat"></p>
+<!-- Menu -->
+<dialog class="drawer left" id="menuD" aria-label="Menu">
+  <div class="d-in">
+    <div class="d-head"><span class="bar-mark" style="opacity:1">OKEANÓS</span><button class="icon-btn" type="button" data-close aria-label="Close menu"><svg class="i"><use href="#i-close"/></svg></button></div>
+    <div class="d-body">
+      <ul class="menu-list" id="menuList"></ul>
+      <div class="menu-extra">
+        <a href="#lookbook" data-close-nav>Lookbook</a>
+        <a href="#about" data-close-nav>About Ōkeanós</a>
+        <a href="https://www.instagram.com/okeanosjewels/" target="_blank" rel="noopener">@okeanosjewels on Instagram</a>
+      </div>
     </div>
-    <p class="p-desc" id="pDesc"></p>
-    <fieldset id="pOpts" hidden><legend id="pOptsLabel">Option</legend><div class="opts" id="pOptsList"></div></fieldset>
-    <div class="add-row">
-      <button class="cta" type="button" id="addBtn">Add to bag</button>
-      <span class="status" id="addStatus" role="status"></span>
-    </div>
-    <a class="ig-link" id="pIg" target="_blank" rel="noopener">See the post on Instagram</a>
   </div>
 </dialog>
 
-<dialog class="panel" id="bagPanel" aria-labelledby="bagH">
-  <div class="panel-in">
-    <div class="panel-top"><h2 id="bagH" class="p-name" style="font-size: var(--s2)">Your bag</h2><button class="close" type="button" data-close>Close</button></div>
-    <ul class="bag-list" id="bagList"></ul>
-    <p class="empty" id="bagEmpty">Your bag is empty. Open a piece and choose Add to bag.</p>
-    <div id="sendBox" hidden>
-      <div style="display:grid; gap:10px">
+<!-- Filters -->
+<dialog class="drawer left" id="filterD" aria-labelledby="filterH">
+  <div class="d-in">
+    <div class="d-head"><h2 id="filterH">Filter</h2><button class="icon-btn" type="button" data-close aria-label="Close filters"><svg class="i"><use href="#i-close"/></svg></button></div>
+    <div class="d-body" id="filterBody"></div>
+    <div class="d-foot two">
+      <button class="link-btn" type="button" id="clearF">Clear all</button>
+      <button class="cta" type="button" id="applyF">Show pieces</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Search -->
+<dialog class="drawer top" id="searchD" aria-label="Search pieces">
+  <div class="search-row">
+    <label for="q" class="sr">Search pieces</label>
+    <input id="q" type="search" placeholder="Search earrings, rings, hoops…" autocomplete="off">
+    <button class="icon-btn" type="button" data-close aria-label="Close search"><svg class="i"><use href="#i-close"/></svg></button>
+  </div>
+  <ul class="results" id="results"></ul>
+</dialog>
+
+<!-- Product -->
+<dialog class="drawer right wide" id="pD" aria-labelledby="pName">
+  <div class="d-in">
+    <div class="d-head"><span class="crumb" id="pCrumb"></span><button class="icon-btn" type="button" data-close aria-label="Close piece"><svg class="i"><use href="#i-close"/></svg></button></div>
+    <div class="d-body">
+      <div class="slides-wrap">
+        <span class="badge" id="pBadge" hidden></span>
+        <div class="slides" id="pSlides" tabindex="0" aria-label="Photos, swipe sideways"></div>
+        <div class="dots" id="pDots"></div>
+      </div>
+      <div class="p-title"><h3 id="pName"></h3><span class="price">Price on request</span></div>
+      <p class="p-desc" id="pDesc"></p>
+      <fieldset id="pOpts" hidden><legend id="pOptsLabel"></legend><div class="opts" id="pOptsList"></div></fieldset>
+      <div class="facts">
+        <div><svg class="i"><use href="#i-chat"/></svg><span>Ordered by WhatsApp or Instagram message</span></div>
+        <div><svg class="i"><use href="#i-gem"/></svg><span>18k gold-plated stainless steel</span></div>
+      </div>
+      <div>
+        <details class="acc" open>
+          <summary>Details <svg class="i"><use href="#i-down"/></svg></summary>
+          <div class="acc-body" id="pDetails"></div>
+        </details>
+        <details class="acc">
+          <summary>Ordering and delivery <svg class="i"><use href="#i-down"/></svg></summary>
+          <div class="acc-body"><p style="margin:0">Add the piece to your bag and send the list on WhatsApp or Instagram. Ōkeanós replies from Beirut with the price and delivery options.</p></div>
+        </details>
+      </div>
+    </div>
+    <div class="d-foot">
+      <span class="status" id="addStatus" role="status"></span>
+      <button class="cta" type="button" id="addBtn">Add to bag</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Bag -->
+<dialog class="drawer right" id="bagD" aria-labelledby="bagH">
+  <div class="d-in">
+    <div class="d-head"><h2 id="bagH">Your bag</h2><button class="icon-btn" type="button" data-close aria-label="Close bag"><svg class="i"><use href="#i-close"/></svg></button></div>
+    <div class="d-body">
+      <ul class="bag-list" id="bagList"></ul>
+      <p class="empty-bag" id="bagEmpty">Your bag is empty. Open a piece and choose Add to bag.</p>
+      <div id="msgBox" hidden style="display:grid; gap:10px">
         <label for="msg" style="font-weight:500">Your message to Ōkeanós</label>
         <textarea class="msg" id="msg"></textarea>
-        <div class="send">
-          <a class="cta" id="waLink" target="_blank" rel="noopener" href="#">Send on WhatsApp</a>
-          <a class="ghost" href="https://ig.me/m/okeanosjewels" target="_blank" rel="noopener">Open Instagram DM</a>
-          <button class="ghost" type="button" id="copyBtn">Copy message</button>
-        </div>
         <p class="note" id="copyStatus" role="status">For Instagram, copy the message and paste it into the DM.</p>
+      </div>
+    </div>
+    <div class="d-foot" id="sendFoot" hidden>
+      <a class="cta" id="waLink" target="_blank" rel="noopener" href="#">Send on WhatsApp</a>
+      <div class="send-row">
+        <a class="ghost" href="https://ig.me/m/okeanosjewels" target="_blank" rel="noopener">Instagram DM</a>
+        <button class="ghost" type="button" id="copyBtn">Copy message</button>
       </div>
     </div>
   </div>
@@ -407,19 +674,24 @@ legend { padding: 0; margin-bottom: 10px; font-weight: 500; }
   const P = 'img/photos/';
   const IG = 'https://www.instagram.com/p/';
   const MAT = '18k gold-plated stainless steel';
-  // Hang order and placement are hand-set like a gallery wall: span = columns of 12, drop = vertical offset, w = art width.
+  const CATS = [
+    ['earrings', 'Earrings'], ['rings', 'Rings'], ['bangles', 'Bangles'], ['chains', 'Hand chains'], ['necklaces', 'Necklaces'],
+  ];
+  const ACCENTS = [['gold', 'All gold', '#C9A55C'], ['enamel', 'Mint enamel', '#A9D8CB'], ['beads', 'Beads', 'linear-gradient(135deg,#F4EFE4 45%,#E9B8C8 45%,#E9B8C8 70%,#AFC6E6 70%)']];
+  const FINISH = [['gold', 'Gold', '#C9A55C'], ['rose', 'Rose gold', '#D6A08A']];
+  // Featured order. date = Instagram post date, used for "Newest".
   const pieces = [
-    { id: 'cluster', name: 'Cluster earrings', type: 'Earrings', f: 'earrings', cut: 'img/cluster-earrings.webp', photos: [P + 'DMflv7RM8FC_1.webp'], desc: 'Puffy, high-shine teardrop hoops on post backs.', post: 'DMflv7RM8FC', span: 4, drop: 0, w: '78%' },
-    { id: 'handchain', name: 'Hand chain', type: 'Wrist to finger', f: 'wrist', photo: P + 'DMflnuQMd3h_3.webp', photos: [P + 'DMflnuQMd3h_3.webp', P + 'DMflnuQMd3h_1.webp', P + 'DMYERJ6MmlI_5.webp'], desc: 'A fine chain from wrist to finger with a small heart on the back of the hand. Their best seller.', post: 'DMflnuQMd3h', span: 3, drop: 90, w: '88%' },
-    { id: 'loop', name: 'Loop Bangle', type: 'Bangle', f: 'wrist', cut: 'img/loop-bangle.webp', photos: [P + 'DMnLeyDsuVS_1.webp', P + 'DMnLYtns6xk_2.webp', P + 'DMnLYtns6xk_1.webp'], desc: 'An open cuff of linked oval loops with ridged ends. Stacks with a smooth bangle.', post: 'DMnLeyDsuVS', span: 5, drop: 30, w: '92%' },
-    { id: 'flowers', name: 'Flowers earrings', type: 'Earrings', f: 'earrings', cut: 'img/flowers-earrings.webp', photos: [P + 'DMSk5HlsS_K_1.webp', P + 'DMSk5HlsS_K_2.webp'], desc: 'Five-petal studs in mint enamel, edged and centred in gold.', post: 'DMSk5HlsS_K', span: 3, drop: 10, w: '82%' },
-    { id: 'hoops', name: 'Summer hoops', type: 'Earrings', f: 'earrings', photo: P + 'DMSkuxiMeaq_1.webp', photos: [P + 'DMSkuxiMeaq_1.webp', P + 'DMSkuxiMeaq_3.webp', P + 'DMSkuxiMeaq_2.webp'], desc: 'Small hoops packed with irregular beads. Wear one colour, or split a pair with a friend.', post: 'DMSkuxiMeaq', opts: { label: 'Colour', values: ['White', 'Pastel'] }, span: 3, drop: 70, w: '84%' },
-    { id: 'wrap', name: 'Organic ring, wrap', type: 'Ring', f: 'rings', cut: 'img/organic-wrap-ring.webp', photos: [P + 'DMYZPxmMPJS_1.webp'], desc: 'An open wrap ring with one end pressed flat. Adjustable.', post: 'DMYZPxmMPJS', span: 3, drop: 150, w: '62%' },
-    { id: 'era', name: 'Era earrings', type: 'Earrings', f: 'earrings', cut: 'img/era-earrings.webp', photos: [P + 'DMVYxotMCLq_1.webp'], desc: 'Chunky wavy hoops with a hinged closure.', post: 'DMVYxotMCLq', span: 3, drop: 20, w: '80%' },
-    { id: 'double', name: 'Organic ring, double band', type: 'Ring', f: 'rings', cut: 'img/organic-double-ring.webp', photos: [P + 'DMYZPxmMPJS_3.webp', P + 'DMYZPxmMPJS_2.webp'], desc: 'Two rounded bands that pass each other. Adjustable.', post: 'DMYZPxmMPJS', span: 4, drop: 0, w: '66%' },
-    { id: 'rosegold', name: 'Rose gold rings', type: 'Rings', f: 'rings', photo: P + 'DMVYoCYsFC8_2.webp', photos: [P + 'DMVYoCYsFC8_2.webp', P + 'DMVYoCYsFC8_3.webp', P + 'DMVYoCYsFC8_1.webp'], desc: 'Thin stacking rings, including a zigzag band and a dotted band.', post: 'DMVYoCYsFC8', opts: { label: 'Style', values: ['Zigzag', 'Dotted'] }, span: 3, drop: 80, w: '86%' },
-    { id: 'leaf', name: 'Leaf studs', type: 'Earrings', f: 'earrings', cut: 'img/leaf-studs.webp', photos: [P + 'DMs6LVlMzue_1.webp', P + 'DMs6LVlMzue_2.webp'], desc: 'Large sculpted leaf studs in polished gold. Working name.', post: 'DMs6LVlMzue', span: 3, drop: 10, w: '70%' },
-    { id: 'necklace', name: 'Satellite necklace', type: 'Necklace', f: 'neck', photo: P + 'DMflnuQMd3h_4.webp', photos: [P + 'DMflnuQMd3h_4.webp', P + 'DMflnuQMd3h_2.webp'], desc: 'A fine chain set with small beads at even intervals. Working name.', post: 'DMflnuQMd3h', span: 2, drop: 120, w: '100%' },
+    { id: 'handchain', name: 'Hand chain', type: 'Wrist to finger', cat: 'chains', finish: 'gold', accent: 'gold', badge: 'Best seller', photo: P + 'DMflnuQMd3h_3.webp', photos: [P + 'DMflnuQMd3h_3.webp', P + 'DMflnuQMd3h_1.webp', P + 'DMYERJ6MmlI_5.webp'], desc: 'A fine chain from wrist to finger with a small heart on the back of the hand.', post: 'DMflnuQMd3h', date: '2025-07-24' },
+    { id: 'hoops', name: 'Summer hoops', type: 'Earrings', cat: 'earrings', finish: 'gold', accent: 'beads', photo: P + 'DMSkuxiMeaq_1.webp', photos: [P + 'DMSkuxiMeaq_1.webp', P + 'DMSkuxiMeaq_3.webp', P + 'DMSkuxiMeaq_2.webp'], desc: 'Small hoops packed with irregular beads. Wear one colour, or split a pair with a friend.', post: 'DMSkuxiMeaq', date: '2025-07-19', opts: { label: 'Colour', values: [['White', '#F4EFE4'], ['Pastel', 'linear-gradient(135deg,#E9B8C8 50%,#AFC6E6 50%)']] } },
+    { id: 'loop', name: 'Loop Bangle', type: 'Bangle', cat: 'bangles', finish: 'gold', accent: 'gold', badge: 'New', cut: 'img/loop-bangle.webp', photos: [P + 'DMnLYtns6xk_2.webp', P + 'DMnLeyDsuVS_1.webp', P + 'DMnLYtns6xk_1.webp'], desc: 'An open cuff of linked oval loops with ridged ends. Stacks with a smooth bangle.', post: 'DMnLeyDsuVS', date: '2025-07-27' },
+    { id: 'cluster', name: 'Cluster earrings', type: 'Earrings', cat: 'earrings', finish: 'gold', accent: 'gold', cut: 'img/cluster-earrings.webp', photos: [P + 'DMflv7RM8FC_1.webp'], desc: 'Puffy, high-shine teardrop hoops on post backs.', post: 'DMflv7RM8FC', date: '2025-07-24' },
+    { id: 'flowers', name: 'Flowers earrings', type: 'Earrings', cat: 'earrings', finish: 'gold', accent: 'enamel', cut: 'img/flowers-earrings.webp', photos: [P + 'DMSk5HlsS_K_2.webp', P + 'DMSk5HlsS_K_1.webp'], desc: 'Five-petal studs in mint enamel, edged and centred in gold.', post: 'DMSk5HlsS_K', date: '2025-07-19' },
+    { id: 'leaf', name: 'Leaf studs', type: 'Earrings', cat: 'earrings', finish: 'gold', accent: 'gold', badge: 'New in', cut: 'img/leaf-studs.webp', photos: [P + 'DMs6LVlMzue_2.webp', P + 'DMs6LVlMzue_1.webp'], desc: 'Large sculpted leaf studs in polished gold. Working name, to be confirmed.', post: 'DMs6LVlMzue', date: '2025-07-29' },
+    { id: 'era', name: 'Era earrings', type: 'Earrings', cat: 'earrings', finish: 'gold', accent: 'gold', cut: 'img/era-earrings.webp', photos: [P + 'DMVYxotMCLq_1.webp'], desc: 'Chunky wavy hoops with a hinged closure.', post: 'DMVYxotMCLq', date: '2025-07-20' },
+    { id: 'wrap', name: 'Organic ring, wrap', type: 'Ring', cat: 'rings', finish: 'gold', accent: 'gold', cut: 'img/organic-wrap-ring.webp', photos: [P + 'DMYZPxmMPJS_1.webp'], desc: 'An open wrap ring with one end pressed flat. Adjustable.', post: 'DMYZPxmMPJS', date: '2025-07-21' },
+    { id: 'double', name: 'Organic ring, double band', type: 'Ring', cat: 'rings', finish: 'gold', accent: 'gold', cut: 'img/organic-double-ring.webp', photos: [P + 'DMYZPxmMPJS_3.webp', P + 'DMYZPxmMPJS_2.webp'], desc: 'Two rounded bands that pass each other. Adjustable.', post: 'DMYZPxmMPJS', date: '2025-07-21' },
+    { id: 'rosegold', name: 'Rose gold rings', type: 'Rings', cat: 'rings', finish: 'rose', accent: 'gold', badge: 'New', photo: P + 'DMVYoCYsFC8_2.webp', photos: [P + 'DMVYoCYsFC8_2.webp', P + 'DMVYoCYsFC8_3.webp', P + 'DMVYoCYsFC8_1.webp'], desc: 'Thin stacking rings, including a zigzag band and a dotted band.', post: 'DMVYoCYsFC8', date: '2025-07-20', opts: { label: 'Style', values: [['Zigzag'], ['Dotted']] } },
+    { id: 'necklace', name: 'Satellite necklace', type: 'Necklace', cat: 'necklaces', finish: 'gold', accent: 'gold', photo: P + 'DMflnuQMd3h_4.webp', photos: [P + 'DMflnuQMd3h_4.webp', P + 'DMflnuQMd3h_2.webp'], desc: 'A fine chain set with small beads at even intervals. Working name, to be confirmed.', post: 'DMflnuQMd3h', date: '2025-07-24' },
   ];
   const look = [
     ['DMsDbsas31f_1.webp', 'Hand chain, dome ring and bangles'],
@@ -432,98 +704,214 @@ legend { padding: 0; margin-bottom: 10px; font-weight: 500; }
   ];
 
   const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const byId = id => pieces.find(p => p.id === id);
+  const thumb = p => p.cut || p.photo;
+  let lightDirty = true;
 
-  // ---------- Build the hang ----------
-  const hang = $('#hang');
+  // ---------- Header height feeds the sticky toolbar offset ----------
+  const bar = $('#bar');
+  const setBarH = () => document.documentElement.style.setProperty('--bar-h', bar.offsetHeight + 'px');
+  setBarH();
+
+  // ---------- Grid ----------
+  const grid = $('#grid');
+  const promo = document.createElement('a');
+  promo.className = 'promo'; promo.href = '#lookbook';
+  promo.innerHTML = `<img src="${P}DMsDbsas31f_1.webp" alt="" loading="lazy"><div><b>Summer on the coast</b><span>See the lookbook</span></div>`;
+  const cards = {};
   for (const p of pieces) {
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'piece'; b.dataset.id = p.id; b.dataset.f = p.f;
-    b.style.setProperty('--span', p.span); b.style.setProperty('--drop', p.drop + 'px');
-    const src = p.cut || p.photo;
-    b.innerHTML = `<div class="art ${p.cut ? 'cut' : 'frame'}" style="--w:${p.w}; ${p.cut ? `--src:url('${src}')` : ''}"><img src="${src}" alt="${p.name}" loading="lazy"></div>
-      <span class="label"><b>${p.name}</b><span>${p.type}</span></span>`;
-    b.addEventListener('click', () => openPiece(p));
-    hang.appendChild(b);
+    const c = document.createElement('article');
+    c.className = 'card'; c.dataset.id = p.id;
+    const alt = p.cut ? p.photos[0] : p.photos[1];
+    const art = p.cut
+      ? `<span class="art cut" style="--src:url('${p.cut}')"><img src="${p.cut}" alt="" loading="lazy"></span>`
+      : `<img class="cover" src="${p.photo}" alt="" loading="lazy">`;
+    const sw = p.opts && p.opts.values[0][1]
+      ? `<div class="swatches" role="group" aria-label="${p.opts.label}">${p.opts.values.map(([v, col], i) =>
+          `<button class="sw" type="button" aria-pressed="${i === 0}" aria-label="${v}" data-v="${v}"><span style="background:${col}"></span></button>`).join('')}</div>` : '';
+    c.innerHTML = `<div class="tile-wrap">
+        <button class="tile" type="button" aria-label="${p.name}, open details">${p.badge ? `<span class="badge">${p.badge}</span>` : ''}${art}${alt ? `<img class="alt" src="${alt}" alt="" loading="lazy">` : ''}</button>
+        <button class="quick" type="button">${p.opts ? 'Choose ' + p.opts.label.toLowerCase() : 'Add to bag'}</button>
+      </div>
+      <div class="meta"><h3><button type="button">${p.name}</button></h3><p>${p.type}</p><p class="price">Price on request</p>${sw}</div>`;
+    c.querySelector('.tile').addEventListener('click', () => openPiece(p));
+    c.querySelector('.meta h3 button').addEventListener('click', () => openPiece(p));
+    c.querySelector('.quick').addEventListener('click', e => {
+      if (p.opts) return openPiece(p);
+      addToBag(p, ''); flash(e.currentTarget, 'Added to bag');
+    });
+    c.querySelectorAll('.sw').forEach(b => b.addEventListener('click', () => {
+      c.querySelectorAll('.sw').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
+      p.pick = b.dataset.v;
+    }));
+    cards[p.id] = c;
   }
-  const lookEl = $('#look');
-  for (const [f, cap] of look) {
-    const fig = document.createElement('figure');
-    fig.innerHTML = `<img src="${P + f}" alt="${cap}" loading="lazy"><figcaption>${cap}</figcaption>`;
-    lookEl.appendChild(fig);
+  function flash(btn, text) {
+    const was = btn.textContent; btn.textContent = text;
+    setTimeout(() => { btn.textContent = was; }, 1400);
   }
 
-  // ---------- Filters ----------
-  document.querySelectorAll('.filters button').forEach(btn => btn.addEventListener('click', () => {
-    document.querySelectorAll('.filters button').forEach(o => o.setAttribute('aria-pressed', String(o === btn)));
-    const f = btn.dataset.f;
-    hang.querySelectorAll('.piece').forEach(el => { el.hidden = f !== 'all' && el.dataset.f !== f; });
+  // ---------- Filters + sort ----------
+  const state = { cat: new Set(), finish: new Set(), accent: new Set(), sort: 'featured', newOnly: false };
+  const matches = (p, ignore) =>
+    (ignore === 'cat' || !state.cat.size || state.cat.has(p.cat)) &&
+    (ignore === 'finish' || !state.finish.size || state.finish.has(p.finish)) &&
+    (ignore === 'accent' || !state.accent.size || state.accent.has(p.accent)) &&
+    (!state.newOnly || !!p.badge && p.badge !== 'Best seller');
+  function visible() {
+    let list = pieces.filter(p => matches(p));
+    if (state.sort === 'newest') list = [...list].sort((a, b) => b.date.localeCompare(a.date));
+    if (state.sort === 'az') list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+    return list;
+  }
+  function activeCount() { return state.cat.size + state.finish.size + state.accent.size + (state.newOnly ? 1 : 0); }
+  function render() {
+    const list = visible();
+    grid.replaceChildren();
+    list.forEach((p, i) => {
+      grid.appendChild(cards[p.id]);
+      if (i === 3 && !activeCount()) grid.appendChild(promo);   // editorial tile, only in the unfiltered view
+    });
+    if (!list.length) {
+      const e = document.createElement('p'); e.className = 'no-results';
+      e.textContent = 'No pieces match these filters. Clear a filter to see more.';
+      grid.appendChild(e);
+    }
+    const n = activeCount();
+    $('#filterN').textContent = n ? `(${n})` : '';
+    $('#resultCount').textContent = `${list.length} ${list.length === 1 ? 'piece' : 'pieces'}`;
+    $('#shop-h').textContent = state.newOnly ? 'New in'
+      : state.cat.size === 1 ? CATS.find(c => c[0] === [...state.cat][0])[1] : 'All pieces';
+    $('#applyF').textContent = `Show ${list.length} ${list.length === 1 ? 'piece' : 'pieces'}`;
+    refreshFilterCounts();
+    arts = $$('.art');
     lightDirty = true;
-  }));
-
-  // ---------- Product panel ----------
-  const pPanel = $('#pPanel');
-  let current = null;
-  function setMain(src, isCut) {
-    const m = $('#pMain'); m.src = src; m.className = isCut ? 'cut' : ''; m.alt = current.name;
-    $('#pThumbs').querySelectorAll('button').forEach(t => t.setAttribute('aria-current', String(t.dataset.src === src)));
   }
+  const groups = [
+    ['cat', 'Type', CATS.map(([v, l]) => [v, l])],
+    ['finish', 'Finish', FINISH],
+    ['accent', 'Accent', ACCENTS],
+  ];
+  $('#filterBody').innerHTML = groups.map(([key, label, opts]) => `
+    <details class="acc" open>
+      <summary>${label} <svg class="i"><use href="#i-down"/></svg></summary>
+      <div class="acc-body">${opts.map(([v, l, col]) => `
+        <label class="check"><input type="checkbox" data-g="${key}" value="${v}" id="f-${key}-${v}">
+          ${col ? `<span class="dot" style="background:${col}"></span>` : ''}<span>${l}</span><span class="n" data-n="${key}-${v}"></span></label>`).join('')}
+      </div>
+    </details>`).join('');
+  function refreshFilterCounts() {
+    for (const [key, , opts] of groups) for (const [v] of opts) {
+      const n = pieces.filter(p => matches(p, key) && (key === 'cat' ? p.cat : p[key]) === v).length;
+      const el = $(`[data-n="${key}-${v}"]`); if (el) el.textContent = n;
+      const box = $(`#f-${key}-${v}`); if (box) box.checked = state[key].has(v);
+    }
+  }
+  $('#filterBody').addEventListener('change', e => {
+    const t = e.target; if (!t.dataset.g) return;
+    state[t.dataset.g][t.checked ? 'add' : 'delete'](t.value);
+    render();
+  });
+  $('#clearF').addEventListener('click', () => { state.cat.clear(); state.finish.clear(); state.accent.clear(); state.newOnly = false; render(); });
+  $('#applyF').addEventListener('click', () => { $('#filterD').close(); });
+  $('#sort').addEventListener('change', e => { state.sort = e.target.value; render(); });
+  function showCategory(cat) {
+    state.cat.clear(); state.finish.clear(); state.accent.clear(); state.newOnly = false;
+    if (cat === 'new') state.newOnly = true; else if (cat) state.cat.add(cat);
+    render();
+    $('#shop').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
+  }
+  $$('[data-cat]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); showCategory(a.dataset.cat); }));
+
+  // ---------- Menu ----------
+  $('#menuList').innerHTML = [['new', 'New in', pieces.filter(p => p.badge && p.badge !== 'Best seller').length], ['', 'All pieces', pieces.length]]
+    .concat(CATS.map(([v, l]) => [v, l, pieces.filter(p => p.cat === v).length]))
+    .map(([v, l, n]) => `<li><button type="button" data-menu-cat="${v}">${l}<span class="n">${n}</span></button></li>`).join('');
+  $('#menuList').addEventListener('click', e => {
+    const b = e.target.closest('[data-menu-cat]'); if (!b) return;
+    $('#menuD').close(); showCategory(b.dataset.menuCat);
+  });
+  $$('[data-close-nav]').forEach(a => a.addEventListener('click', () => $('#menuD').close()));
+
+  // ---------- Search ----------
+  const q = $('#q');
+  function search() {
+    const term = q.value.trim().toLowerCase();
+    const hits = pieces.filter(p => !term || (p.name + ' ' + p.type + ' ' + p.desc).toLowerCase().includes(term));
+    $('#results').innerHTML = hits.length
+      ? hits.map(p => `<li><button type="button" data-id="${p.id}"><img src="${thumb(p)}" alt=""><span><b>${p.name}</b><span>${p.type}</span></span></button></li>`).join('')
+      : `<li class="empty">No pieces match “${q.value}”. Try earrings, rings or hoops.</li>`;
+  }
+  q.addEventListener('input', search);
+  $('#results').addEventListener('click', e => {
+    const b = e.target.closest('[data-id]'); if (!b) return;
+    $('#searchD').close(); openPiece(byId(b.dataset.id));
+  });
+
+  // ---------- Product view ----------
+  const pD = $('#pD');
+  let current = null;
   function openPiece(p) {
     current = p;
-    $('#pType').textContent = p.type;
+    $('#pCrumb').textContent = `Pieces / ${CATS.find(c => c[0] === p.cat)[1]}`;
     $('#pName').textContent = p.name;
-    $('#pMat').textContent = MAT;
     $('#pDesc').textContent = p.desc;
-    $('#pIg').href = IG + p.post + '/';
+    const b = $('#pBadge'); b.hidden = !p.badge; b.textContent = p.badge || '';
     $('#addStatus').textContent = '';
     const imgs = (p.cut ? [[p.cut, true]] : []).concat(p.photos.map(s => [s, false]));
-    const th = $('#pThumbs'); th.innerHTML = '';
-    imgs.forEach(([s, c], i) => {
-      const t = document.createElement('button');
-      t.type = 'button'; t.dataset.src = s; t.setAttribute('aria-label', `Photo ${i + 1} of ${imgs.length}`);
-      t.innerHTML = `<img src="${s}" alt="" class="${c ? 'cut' : ''}">`;
-      t.addEventListener('click', () => setMain(s, c));
-      th.appendChild(t);
-    });
-    th.hidden = imgs.length < 2;
-    setMain(imgs[0][0], imgs[0][1]);
+    const slides = $('#pSlides');
+    slides.innerHTML = imgs.map(([s, c], i) => `<div class="slide"><img src="${s}" alt="${p.name}, photo ${i + 1} of ${imgs.length}" class="${c ? 'cut' : ''}"></div>`).join('');
+    slides.scrollLeft = 0;
+    const dots = $('#pDots');
+    dots.innerHTML = imgs.length > 1 ? imgs.map((_, i) => `<button type="button" aria-label="Show photo ${i + 1}" aria-current="${i === 0}"></button>`).join('') : '';
+    dots.querySelectorAll('button').forEach((d, i) => d.addEventListener('click', () =>
+      slides.scrollTo({ left: i * slides.clientWidth, behavior: reduce ? 'auto' : 'smooth' })));
     const fs = $('#pOpts');
     if (p.opts) {
-      fs.hidden = false; $('#pOptsLabel').textContent = p.opts.label;
-      $('#pOptsList').innerHTML = p.opts.values.map((v, i) =>
-        `<label><input type="radio" name="opt" id="opt-${p.id}-${i}" value="${v}" ${i === 0 ? 'checked' : ''}><span>${v}</span></label>`).join('');
+      fs.hidden = false;
+      const pick = p.pick || p.opts.values[0][0];
+      const setLabel = v => { $('#pOptsLabel').innerHTML = `${p.opts.label}: <b>${v}</b>`; };
+      $('#pOptsList').innerHTML = p.opts.values.map(([v], i) =>
+        `<label><input type="radio" name="opt" id="opt-${p.id}-${i}" value="${v}" ${v === pick ? 'checked' : ''}><span>${v}</span></label>`).join('');
+      setLabel(pick);
+      $('#pOptsList').onchange = e => { setLabel(e.target.value); p.pick = e.target.value; };
     } else fs.hidden = true;
-    pPanel.showModal();
+    $('#pDetails').innerHTML = `<p style="margin:0">${p.type}. ${MAT}.</p><a href="${IG + p.post}/" target="_blank" rel="noopener">See the post on Instagram</a>`;
+    pD.showModal();
+    pD.scrollTop = 0;
   }
+  $('#pSlides').addEventListener('scroll', e => {
+    const s = e.currentTarget, i = Math.round(s.scrollLeft / s.clientWidth);
+    $$('#pDots button').forEach((d, k) => d.setAttribute('aria-current', String(k === i)));
+  }, { passive: true });
   $('#addBtn').addEventListener('click', () => {
-    const opt = current.opts ? (pPanel.querySelector('input[name="opt"]:checked') || {}).value : '';
+    const opt = current.opts ? (pD.querySelector('input[name="opt"]:checked') || {}).value : '';
     addToBag(current, opt);
-    $('#addStatus').textContent = 'Added to bag';
+    $('#addStatus').textContent = `Added to bag${opt ? ': ' + opt : ''}`;
   });
 
   // ---------- Bag ----------
   const bag = [];
-  const bagPanel = $('#bagPanel');
   function addToBag(p, opt) {
     const line = bag.find(l => l.id === p.id && l.opt === opt);
     if (line) line.qty++; else bag.push({ id: p.id, opt, qty: 1 });
     renderBag();
   }
   function message() {
-    const lines = bag.map(l => {
-      const p = pieces.find(x => x.id === l.id);
-      return `- ${p.name}${l.opt ? ' (' + l.opt + ')' : ''} x${l.qty}`;
-    });
+    const lines = bag.map(l => `- ${byId(l.id).name}${l.opt ? ' (' + l.opt + ')' : ''} x${l.qty}`);
     return `Hello Ōkeanós, I'd like to order:\n${lines.join('\n')}\n\nCould you confirm the price and delivery? Thank you.`;
   }
   function renderBag() {
     const n = bag.reduce((a, l) => a + l.qty, 0);
-    $('#bagCount').textContent = n;
+    const cnt = $('#bagCount'); cnt.textContent = n; cnt.hidden = !n;
+    $('#bagBtn').setAttribute('aria-label', `Open bag, ${n} ${n === 1 ? 'piece' : 'pieces'}`);
     const list = $('#bagList'); list.innerHTML = '';
     bag.forEach((l, i) => {
-      const p = pieces.find(x => x.id === l.id);
+      const p = byId(l.id);
       const li = document.createElement('li');
-      li.innerHTML = `<img src="${p.cut || p.photo}" alt=""><div><b>${p.name}</b><span>${l.opt || p.type}</span></div>
+      li.innerHTML = `<img src="${thumb(p)}" alt=""><div><b>${p.name}</b><span>${l.opt || p.type}</span></div>
         <div class="qty"><button type="button" aria-label="Remove one ${p.name}">−</button><output>${l.qty}</output><button type="button" aria-label="Add one ${p.name}">+</button></div>`;
       const [minus, plus] = li.querySelectorAll('button');
       minus.addEventListener('click', () => { l.qty--; if (!l.qty) bag.splice(i, 1); renderBag(); });
@@ -531,7 +919,8 @@ legend { padding: 0; margin-bottom: 10px; font-weight: 500; }
       list.appendChild(li);
     });
     $('#bagEmpty').hidden = n > 0;
-    $('#sendBox').hidden = n === 0;
+    $('#msgBox').hidden = n === 0;
+    $('#sendFoot').hidden = n === 0;
     const msg = message();
     $('#msg').value = msg;
     $('#waLink').href = 'https://wa.me/?text=' + encodeURIComponent(msg);
@@ -539,27 +928,39 @@ legend { padding: 0; margin-bottom: 10px; font-weight: 500; }
   $('#msg').addEventListener('input', e => { $('#waLink').href = 'https://wa.me/?text=' + encodeURIComponent(e.target.value); });
   $('#copyBtn').addEventListener('click', () => {
     const t = $('#msg');
-    const done = () => { $('#copyStatus').textContent = 'Message copied. Paste it into the DM.'; };
-    if (navigator.clipboard) navigator.clipboard.writeText(t.value).then(done, () => { t.select(); $('#copyStatus').textContent = 'Message selected. Copy it with your keyboard.'; });
-    else { t.select(); $('#copyStatus').textContent = 'Message selected. Copy it with your keyboard.'; }
+    const fallback = () => { t.select(); $('#copyStatus').textContent = 'Message selected. Copy it with your keyboard.'; };
+    if (navigator.clipboard) navigator.clipboard.writeText(t.value).then(() => { $('#copyStatus').textContent = 'Message copied. Paste it into the DM.'; }, fallback);
+    else fallback();
   });
-  $('#bagBtn').addEventListener('click', () => { renderBag(); bagPanel.showModal(); });
-  document.querySelectorAll('dialog.panel').forEach(d => {
-    d.querySelector('[data-close]').addEventListener('click', () => d.close());
-    d.addEventListener('click', e => { if (e.target === d) d.close(); });
+
+  // ---------- Drawer wiring ----------
+  const open = (btn, d, after) => $(btn).addEventListener('click', () => { d.showModal(); after && after(); });
+  open('#menuBtn', $('#menuD'));
+  open('#filterBtn', $('#filterD'), refreshFilterCounts);
+  open('#searchBtn', $('#searchD'), () => { search(); q.focus(); });
+  open('#bagBtn', $('#bagD'), renderBag);
+  $$('dialog.drawer').forEach(d => {
+    d.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => d.close()));
+    d.addEventListener('click', e => { if (e.target === d) d.close(); });   // click on the scrim
   });
+
+  const lookEl = $('#look');
+  for (const [f, cap] of look) {
+    const fig = document.createElement('figure');
+    fig.innerHTML = `<img src="${P + f}" alt="${cap}" loading="lazy"><figcaption>${cap}</figcaption>`;
+    lookEl.appendChild(fig);
+  }
   renderBag();
 
-  // ---------- Header ----------
-  const bar = $('#bar');
+  // ---------- Header turns solid once the big wordmark has passed under it ----------
   const heroEl = $('#hero');
-  // Header turns solid once the big wordmark has passed under it.
-  new IntersectionObserver(([e]) => bar.classList.toggle('solid', !e.isIntersecting && e.boundingClientRect.top < 0), { rootMargin: '-60px 0px 0px 0px' }).observe($('.mark'));
+  new IntersectionObserver(([e]) => bar.classList.toggle('solid', !e.isIntersecting && e.boundingClientRect.top < 0),
+    { rootMargin: `-${bar.offsetHeight}px 0px 0px 0px` }).observe($('.mark'));
 
-  // ---------- Light (shared by the wall and the hung pieces) ----------
+  // ---------- Light (shared by the wall and the pieces) ----------
   const light = { x: innerWidth * 0.18, y: innerHeight * 0.12 };      // viewport px, eased
   const target = { x: light.x, y: light.y };
-  let lastMove = -1e9, lightDirty = true;
+  let lastMove = -1e9;
   const ripples = [];   // {x, y (page px), t0, s}
   const t0 = performance.now();
   const now = () => (performance.now() - t0) / 1000;
@@ -586,24 +987,25 @@ legend { padding: 0; margin-bottom: 10px; font-weight: 500; }
   }
   addEventListener('pointermove', e => pointer(e.clientX, e.clientY, false), { passive: true });
   addEventListener('pointerdown', e => pointer(e.clientX, e.clientY, true), { passive: true });
-  addEventListener('resize', () => { lightDirty = true; resize(); });
+  addEventListener('resize', () => { setBarH(); lightDirty = true; resize(); });
 
-  // Shadows and glints for hung pieces follow the light.
-  const arts = [...document.querySelectorAll('.art')];
+  // Shadows and glints for cut-out pieces follow the light.
+  let arts = [];
   function updatePieces() {
     for (const a of arts) {
       const r = a.getBoundingClientRect();
       if (r.bottom < -100 || r.top > innerHeight + 100 || !r.width) continue;
       const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
       const dx = cx - light.x, dy = cy - light.y, d = Math.hypot(dx, dy) || 1;
-      const len = Math.min(4 + d / 45, 22);
+      const len = Math.min(3 + d / 60, 14);
       a.style.setProperty('--sx', (dx / d * len).toFixed(1) + 'px');
       a.style.setProperty('--sy', (dy / d * len).toFixed(1) + 'px');
-      a.style.setProperty('--sb', (8 + len * 0.7).toFixed(1) + 'px');
+      a.style.setProperty('--sb', (6 + len * 0.7).toFixed(1) + 'px');
       a.style.setProperty('--lx', ((light.x - r.left) / r.width * 100).toFixed(1) + '%');
       a.style.setProperty('--ly', ((light.y - r.top) / r.height * 100).toFixed(1) + '%');
     }
   }
+  render();
 
   // ---------- WebGL wall ----------
   const canvas = $('#wall');
@@ -613,7 +1015,7 @@ legend { padding: 0; margin-bottom: 10px; font-weight: 500; }
   const VS = `attribute vec2 a; void main(){ gl_Position = vec4(a, 0., 1.); }`;
   const FS = `precision highp float;
 uniform vec2 uRes; uniform float uScale; uniform vec2 uLight; uniform float uScroll;
-uniform float uTime; uniform float uPaint; uniform float uHeroH;
+uniform float uTime; uniform float uPaint; uniform float uHeroH; uniform float uHeroTop;
 uniform vec4 uRip[8];
 const vec3 PLASTER = vec3(0.839, 0.847, 0.851);
 const vec3 PAINT = vec3(0.945, 0.945, 0.937);
@@ -625,10 +1027,10 @@ float noise(vec2 p){
 }
 float fbm(vec2 p){ float v = 0., a = .5; for (int i = 0; i < 4; i++){ v += a * noise(p); p = p * 2.03 + 17.1; a *= .5; } return v; }
 
-// Stroke geometry in page px: centred column, starting 10% down the hero.
+// Stroke geometry in page px: centred column, starting 12% down the hero.
 float strokeMask(vec2 p, out vec2 st){
   float w = min(uHeroH * .15, uRes.x / uScale * .3);
-  float top = uHeroH * .12, len = uHeroH * .74;
+  float top = uHeroTop + uHeroH * .12, len = uHeroH * .74;
   float t = (p.y - top) / len;
   float wobble = .06 * sin(t * 2.6 + .6) + .05 * (noise(vec2(t * 6., 3.)) - .5);
   float s = (p.x - uRes.x / uScale * .5) / (w * .5) - wobble;
@@ -718,7 +1120,7 @@ void main(){
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     const loc = gl.getAttribLocation(prog, 'a');
     gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-    for (const k of ['uRes', 'uScale', 'uLight', 'uScroll', 'uTime', 'uPaint', 'uHeroH', 'uRip']) U[k] = gl.getUniformLocation(prog, k);
+    for (const k of ['uRes', 'uScale', 'uLight', 'uScroll', 'uTime', 'uPaint', 'uHeroH', 'uHeroTop', 'uRip']) U[k] = gl.getUniformLocation(prog, k);
     resize();
   } catch (err) {
     console.warn('Wall falls back to CSS:', err.message);
@@ -762,6 +1164,7 @@ void main(){
       gl.uniform1f(U.uTime, t);
       gl.uniform1f(U.uPaint, paint.v);
       gl.uniform1f(U.uHeroH, heroEl.offsetHeight);
+      gl.uniform1f(U.uHeroTop, heroEl.getBoundingClientRect().top + scrollY);
       gl.uniform4fv(U.uRip, ripData);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     }

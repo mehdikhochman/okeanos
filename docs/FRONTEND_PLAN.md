@@ -194,3 +194,26 @@ column spans. A strict product grid would look like every other shop.
 7. **Polish:** Remotion fallback loop, accessibility audit, performance pass
    (LCP under 2.5s on 4G with the canvas loaded after first paint), e2e tests.
 8. **Launch** with the deploy checklist.
+
+## 6. Shop layout borrowed from Olive + Piper (prototype v2)
+
+The client asked for the phone layout and shop features of
+[oliveandpiper.com/collections/new-arrivals](https://www.oliveandpiper.com/collections/new-arrivals).
+Adopted in `prototype/index.html`, restyled in the wall design:
+
+| Olive + Piper pattern | Okeanós version |
+|---|---|
+| Announcement strip | "No checkout needed. Send your bag to Ōkeanós on WhatsApp or Instagram." |
+| Sticky header: menu / centred logo / search + bag (phone); category row under logo (desktop) | Same; the logo fades in once the hero wordmark scrolls away |
+| Left menu drawer with category list | Categories with piece counts, plus Lookbook, About, Instagram |
+| Filter pill + Sort select, sticky under the header | Same; "N pieces" count on desktop |
+| Filter drawer with collapsible sections | Type, Finish, Accent, with live counts, "Clear all" and "Show N pieces" |
+| 2-column grid on phones (4 on desktop), badges, swatches | Same, on lighter plaster tiles; cut-outs keep the live shadow and gold glint |
+| Promo tile inside the grid | "Summer on the coast", which links to the lookbook (hidden while filtering) |
+| Desktop hover: second image + "Add to cart" | Hover shows the on-body photo + "Add to bag" (or "Choose colour") |
+| Product page: title + price row, swipe carousel with dots, option picker, sticky Add to cart, accordions | Full-screen sheet on phones with the same parts; Add to bag sticks to the bottom |
+| Cart drawer | Bag drawer that builds the WhatsApp/Instagram message |
+
+Left out: currency selector, account/wishlist, price filter and sort (no public
+prices), Shop Pay. Their cart drawer could not be captured (the add-to-cart
+redirect goes through Shop Pay, which the environment blocks).
