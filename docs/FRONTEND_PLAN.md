@@ -40,9 +40,11 @@ quiet: navy type, generous space, no cards, no gradients, no decoration.
 | `--silt` | `#4A565E` | Secondary text, prices, meta (5.2:1 on plaster) |
 | `--shade` | `#A9ADB0` | Relief shadows and hairlines only. Never used for text. |
 
-Every text pairing passes WCAG AA. Add a metal accent only if the catalogue
-confirms gold pieces, and then only as a non-text highlight on the 3D light.
-Text never uses it.
+Every text pairing passes WCAG AA. The catalogue is confirmed as 18k gold and
+rose-gold plating, so the light has a warm specular tint (`--gilt` `#B8975A`)
+that appears only where it catches a hung piece. This brings the summer warmth
+of the feed onto the cool wall. Text never uses it, because it fails contrast
+on plaster.
 
 ### Type
 
@@ -119,7 +121,7 @@ column spans. A strict product grid would look like every other shop.
 | Concern | Choice | Why |
 |---|---|---|
 | Framework | **Next.js (App Router) + TypeScript** | SEO for product pages, image optimisation, an easy route to headless commerce |
-| Commerce | **Shopify Storefront API** (headless) or a Shopify Starter/Instagram Shop link to begin with | Record this as an ADR with `engineering:architecture` once the client confirms where they sell today |
+| Commerce | **Phase 1: "Order on WhatsApp/DM".** The bag builds a pre-filled WhatsApp message (piece, variant, quantity) from a static catalogue. **Phase 2 (optional):** headless Shopify with cash on delivery | Today the brand only takes orders by DM in Beirut, so phase 1 matches how they already sell. Record the choice as an ADR with `engineering:architecture`. |
 | WebGL | **three.js via React Three Fiber**, one full-screen plane with a custom shader | One canvas fixed behind the page, shared by every route |
 | Animation | **GSAP** (load sequence, ScrollTrigger light drift) + **Lenis** smooth scroll | Precise timeline control for the single intro moment |
 | Styling | CSS Modules + CSS custom properties (the tokens above) | Tokens shared by the CSS and the shader uniforms |
@@ -186,7 +188,8 @@ column spans. A strict product grid would look like every other shop.
 3. **Scaffold:** Next.js app, tokens, fonts, layout shell, the shared canvas.
 4. **Catalogue:** collection salon walls, product page, bag drawer (static data
    from the CSV).
-5. **Commerce:** connect the chosen backend and checkout.
+5. **Ordering:** WhatsApp/DM order handoff (phase 1). Add a Shopify checkout only
+   if the client wants one.
 6. **Content pages:** story, care, shipping and returns, contact, Instagram feed.
 7. **Polish:** Remotion fallback loop, accessibility audit, performance pass
    (LCP under 2.5s on 4G with the canvas loaded after first paint), e2e tests.
