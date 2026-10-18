@@ -66,14 +66,14 @@ function localStore(mediaDir) {
   };
 }
 
-// put() reads BLOB_READ_WRITE_TOKEN from the environment.
-function blobStore() {
+function blobStore(token) {
   return {
     dir: null,
     async save(buffer) {
       const { versions, ...image } = await encode(buffer);
       const uploads = await Promise.all(versions.map((v) => put(`media/${fileName(image.fileKey, v.width)}`, v.data, {
         access: 'public',
+        token,
         contentType: 'image/webp',
         addRandomSuffix: false, // the name is already a content hash
         allowOverwrite: true,
@@ -83,11 +83,11 @@ function blobStore() {
       return { ...image, baseUrl };
     },
     async remove(image) {
-      await del(IMAGE_WIDTHS.map((width) => mediaUrl(image, width)));
+      await del(IMAGE_WIDTHS.map((width) => mediaUrl(image, width)), { token });
     },
   };
 }
 
-export function createMediaStore({ driver, mediaDir }) {
-  return driver === 'blob' ? blobStore() : localStore(mediaDir);
+export function createMediaStore({ driver, mediaDir, blobToken }) {
+  return driver === 'blob' ? blobStore(blobToken) : localStore(mediaDir);
 }

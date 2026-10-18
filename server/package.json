@@ -5,7 +5,7 @@
   "description": "Storefront and admin for Okean\u00f3s jewellery",
   "type": "module",
   "engines": {
-    "node": ">=22.9"
+    "node": "22.x"
   },
   "scripts": {
     "start": "node --env-file-if-exists=.env src/server.js",

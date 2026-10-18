@@ -31,7 +31,7 @@ log('Database tables are up to date.');
 
 const db = await openDatabase({ url: config.databaseUrl, authToken: config.databaseToken, migrate: false });
 const repos = createRepositories(db);
-const media = createMediaStore({ driver: config.mediaDriver, mediaDir: path.join(config.dataDir, 'media') });
+const media = createMediaStore({ driver: config.mediaDriver, mediaDir: path.join(config.dataDir, 'media'), blobToken: config.blobToken });
 if (await seedCatalogue({ repos, media, log })) await repos.settings.bumpCatalogueVersion();
 await createFirstOwner(repos);
 db.close();

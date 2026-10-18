@@ -36,7 +36,7 @@ export async function buildApp({
   });
 
   app.decorate('repos', repos);
-  app.decorate('media', createMediaStore({ driver: mediaDriver, mediaDir: path.join(dataDir, 'media') }));
+  app.decorate('media', createMediaStore({ driver: mediaDriver, mediaDir: path.join(dataDir, 'media'), blobToken: config.blobToken }));
   app.decorate('storefront', createStorefront({ repos }));
 
   await app.register(fastifyCookie);

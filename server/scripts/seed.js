@@ -114,7 +114,7 @@ export async function seedCatalogue({ repos, media, log = console.log }) {
 if (import.meta.url === `file://${process.argv[1]}`) {
   const db = await openDatabase({ url: config.databaseUrl, authToken: config.databaseToken });
   const repos = createRepositories(db);
-  const media = createMediaStore({ driver: config.mediaDriver, mediaDir: path.join(config.dataDir, 'media') });
+  const media = createMediaStore({ driver: config.mediaDriver, mediaDir: path.join(config.dataDir, 'media'), blobToken: config.blobToken });
   const seeded = await seedCatalogue({ repos, media });
   if (!seeded) console.log('Nothing was changed.');
   db.close();

@@ -28,6 +28,14 @@ function publicOrigin() {
   return origin.replace(/\/$/, '');
 }
 
+// Vercel names the Blob token BLOB_READ_WRITE_TOKEN, or <PREFIX>_READ_WRITE_TOKEN when the store
+// was created with a custom prefix. Accept either.
+function blobToken() {
+  if (env.BLOB_READ_WRITE_TOKEN) return env.BLOB_READ_WRITE_TOKEN;
+  const key = Object.keys(env).find((name) => name.endsWith('_READ_WRITE_TOKEN') && env[name].startsWith('vercel_blob_rw_'));
+  return key ? env[key] : undefined;
+}
+
 function databaseUrl(dataDir) {
   return env.TURSO_DATABASE_URL ?? `file:${path.join(dataDir, 'okeanos.db')}`;
 }
@@ -38,7 +46,7 @@ function checkVercelSetup() {
   const missing = [
     !env.TURSO_DATABASE_URL && 'TURSO_DATABASE_URL (connect a Turso database to the project)',
     !env.TURSO_AUTH_TOKEN && 'TURSO_AUTH_TOKEN (comes with the Turso database)',
-    !env.BLOB_READ_WRITE_TOKEN && 'BLOB_READ_WRITE_TOKEN (connect a Blob store to the project)',
+    !blobToken() && 'BLOB_READ_WRITE_TOKEN (Storage > Create > Blob, then connect it to this project for Production, Preview and Development)',
   ].filter(Boolean);
   if (missing.length) throw new ConfigError(`Missing in Vercel > Settings > Environment Variables: ${missing.join('; ')}.`);
 }
@@ -63,7 +71,8 @@ function load() {
     dataDir,
     databaseUrl: databaseUrl(dataDir),
     databaseToken: env.TURSO_AUTH_TOKEN,
-    mediaDriver: env.BLOB_READ_WRITE_TOKEN ? 'blob' : 'local',
+    mediaDriver: blobToken() ? 'blob' : 'local',
+    blobToken: blobToken(),
     trustProxy: isVercel || env.TRUST_PROXY === 'true',
     ipHashSecret: ipHashSecret(),
     // Vercel refuses request bodies over 4.5 MB; the admin shrinks photos before upload to stay under it.
