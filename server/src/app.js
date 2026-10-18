@@ -19,6 +19,7 @@ export async function buildApp({
   dataDir = config.dataDir,
   databaseUrl = config.databaseUrl,
   mediaDriver = config.mediaDriver,
+  media = createMediaStore({ driver: mediaDriver, mediaDir: path.join(dataDir, 'media'), blobToken: config.blobToken }),
   logger = true,
 } = {}) {
   const db = await openDatabase({ url: databaseUrl, authToken: config.databaseToken, migrate: config.migrateOnStart });
@@ -36,7 +37,7 @@ export async function buildApp({
   });
 
   app.decorate('repos', repos);
-  app.decorate('media', createMediaStore({ driver: mediaDriver, mediaDir: path.join(dataDir, 'media'), blobToken: config.blobToken }));
+  app.decorate('media', media);
   app.decorate('storefront', createStorefront({ repos }));
 
   await app.register(fastifyCookie);

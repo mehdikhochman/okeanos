@@ -23,6 +23,7 @@ migrations are the same in both modes.
 | Vercel constraint | Handling |
 |---|---|
 | The disk is wiped between requests | Database on Turso, photos on Vercel Blob |
+| Blob stores are public or private | Detected on the first upload. Public photos link to the Blob CDN; private ones are served by the app at `/media` and cached by Vercel's CDN for a year |
 | Several instances run at once | The cached shop page carries a `catalogue_version`; every admin change bumps it, and each instance rebuilds when its copy is older |
 | Request bodies over 4.5 MB are refused | The admin shrinks photos in the browser and uploads them one at a time |
 | No long-running process | Migrations and the first-time catalogue run at deploy (`npm run vercel-build`); expired sessions are purged at login instead of by a timer |

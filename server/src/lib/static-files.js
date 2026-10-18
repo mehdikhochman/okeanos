@@ -41,17 +41,15 @@ export function serveFolderFromMemory(app, { prefix, root, cacheControl }) {
   });
 }
 
-// Uploaded photos in local mode: names are content hashes, checked against a strict pattern.
-export function serveMediaFolder(app, { prefix, root, cacheControl }) {
+// Uploaded photos served by the app (local folder, or a private Blob store).
+// Names are content hashes, checked against a strict pattern before anything is read.
+export function serveMedia(app, { prefix, read, cacheControl }) {
   const ALLOWED_NAME = /^[a-f0-9]{20}-(480|1200)\.webp$/;
   app.get(`${prefix}:name`, async (request, reply) => {
     const { name } = request.params;
     if (!ALLOWED_NAME.test(name)) return reply.callNotFound();
-    try {
-      const body = await fs.promises.readFile(path.join(root, name));
-      return reply.header('cache-control', cacheControl).type('image/webp').send(body);
-    } catch {
-      return reply.callNotFound();
-    }
+    const body = await read(name);
+    if (!body) return reply.callNotFound();
+    return reply.header('cache-control', cacheControl).type('image/webp').send(body);
   });
 }

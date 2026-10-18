@@ -2,7 +2,7 @@
 import path from 'node:path';
 import { config } from '../config.js';
 import { placeOrder, ORDER_BODY_SCHEMA } from './place-order.js';
-import { serveFolderFromMemory, serveMediaFolder } from '../lib/static-files.js';
+import { serveFolderFromMemory, serveMedia } from '../lib/static-files.js';
 
 const PUBLIC_DIR = path.resolve(import.meta.dirname, '../../public');
 const ONE_YEAR_SECONDS = 365 * 24 * 60 * 60;
@@ -27,10 +27,10 @@ export async function publicRoutes(app) {
     return reply.send(page.html);
   });
 
-  // Uploaded images: content-hashed names, so they can be cached for a year.
-  // (On Vercel they are served by Vercel Blob instead, and there is no local folder.)
+  // Uploaded images: content-hashed names, so they can be cached for a year, by browsers and by
+  // Vercel's CDN (so a private Blob photo goes through the function once per CDN location).
   const forever = `public, max-age=${ONE_YEAR_SECONDS}, s-maxage=${ONE_YEAR_SECONDS}, immutable`;
-  if (app.media.dir) serveMediaFolder(app, { prefix: '/media/', root: app.media.dir, cacheControl: forever });
+  serveMedia(app, { prefix: '/media/', read: app.media.read, cacheControl: forever });
 
   // Fonts keep their names forever; the icon and error styles may change, so they are cached for a day.
   serveFolderFromMemory(app, {
