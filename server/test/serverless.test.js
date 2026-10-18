@@ -71,3 +71,18 @@ test('a Blob token created with a custom prefix is accepted', () => {
   assert.match(output.body, /TURSO_DATABASE_URL/);
   assert.doesNotMatch(output.body, /BLOB_READ_WRITE_TOKEN/);
 });
+
+test('a Blob store connected by store ID (no token) is accepted', () => {
+  const script = `
+    const { default: handler } = await import('./api/index.js');
+    const res = { headers: {}, setHeader(k, v) { this.headers[k] = v; }, end(body) { console.log(JSON.stringify({ status: this.statusCode, body })); } };
+    await handler({}, res);`;
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
+    cwd: path.resolve(import.meta.dirname, '..'),
+    env: { PATH: process.env.PATH, VERCEL: '1', NODE_ENV: 'production', BLOB_STORE_ID: 'store_example' },
+    encoding: 'utf8',
+  });
+  const output = JSON.parse(result.stdout.trim().split('\n').at(-1));
+  assert.match(output.body, /TURSO_DATABASE_URL/);
+  assert.doesNotMatch(output.body, /BLOB_STORE_ID/);
+});

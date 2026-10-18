@@ -73,7 +73,7 @@ function blobStore(token) {
       const { versions, ...image } = await encode(buffer);
       const uploads = await Promise.all(versions.map((v) => put(`media/${fileName(image.fileKey, v.width)}`, v.data, {
         access: 'public',
-        token,
+        token, // undefined means: sign in with BLOB_STORE_ID and Vercel's OIDC token
         contentType: 'image/webp',
         addRandomSuffix: false, // the name is already a content hash
         allowOverwrite: true,

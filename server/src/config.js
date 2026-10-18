@@ -28,12 +28,18 @@ function publicOrigin() {
   return origin.replace(/\/$/, '');
 }
 
-// Vercel names the Blob token BLOB_READ_WRITE_TOKEN, or <PREFIX>_READ_WRITE_TOKEN when the store
-// was created with a custom prefix. Accept either.
+// Vercel Blob has two ways to sign in:
+//   - newer stores: BLOB_STORE_ID, plus a short-lived token Vercel gives every build and request
+//     (OIDC). Nothing secret to copy; @vercel/blob finds that token itself.
+//   - older stores: a long-lived BLOB_READ_WRITE_TOKEN (or <PREFIX>_READ_WRITE_TOKEN).
 function blobToken() {
   if (env.BLOB_READ_WRITE_TOKEN) return env.BLOB_READ_WRITE_TOKEN;
   const key = Object.keys(env).find((name) => name.endsWith('_READ_WRITE_TOKEN') && env[name].startsWith('vercel_blob_rw_'));
   return key ? env[key] : undefined;
+}
+
+function hasBlobStore() {
+  return Boolean(blobToken() || env.BLOB_STORE_ID);
 }
 
 function databaseUrl(dataDir) {
@@ -46,7 +52,7 @@ function checkVercelSetup() {
   const missing = [
     !env.TURSO_DATABASE_URL && 'TURSO_DATABASE_URL (connect a Turso database to the project)',
     !env.TURSO_AUTH_TOKEN && 'TURSO_AUTH_TOKEN (comes with the Turso database)',
-    !blobToken() && 'BLOB_READ_WRITE_TOKEN (Storage > Create > Blob, then connect it to this project for Production, Preview and Development)',
+    !hasBlobStore() && 'BLOB_STORE_ID or BLOB_READ_WRITE_TOKEN (Storage > Create > Blob, then connect it to this project)',
   ].filter(Boolean);
   if (missing.length) throw new ConfigError(`Missing in Vercel > Settings > Environment Variables: ${missing.join('; ')}.`);
 }
@@ -71,8 +77,8 @@ function load() {
     dataDir,
     databaseUrl: databaseUrl(dataDir),
     databaseToken: env.TURSO_AUTH_TOKEN,
-    mediaDriver: blobToken() ? 'blob' : 'local',
-    blobToken: blobToken(),
+    mediaDriver: hasBlobStore() ? 'blob' : 'local',
+    blobToken: blobToken(), // undefined with a store ID: @vercel/blob then signs in with Vercel's OIDC token
     trustProxy: isVercel || env.TRUST_PROXY === 'true',
     ipHashSecret: ipHashSecret(),
     // Vercel refuses request bodies over 4.5 MB; the admin shrinks photos before upload to stay under it.
