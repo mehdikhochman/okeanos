@@ -1,4 +1,5 @@
 // Orders placed on the website, and the numbers the dashboard shows about them.
+import { statement } from '../db/database.js';
 
 export const ORDER_STATUSES = ['new', 'confirmed', 'in_production', 'out_for_delivery', 'delivered', 'cancelled'];
 export const ORDER_STATUS_LABELS = {
@@ -10,90 +11,79 @@ export const ORDER_STATUS_LABELS = {
   cancelled: 'Cancelled',
 };
 const FIRST_ORDER_NUMBER = 1001;
+const SEARCH = `(@status = '' OR status = @status)
+  AND (@q = '' OR number LIKE '%' || @q || '%' OR customer_name LIKE '%' || @q || '%'
+       OR phone LIKE '%' || @q || '%' OR city LIKE '%' || @q || '%')`;
 
 export function createOrdersRepository(db) {
-  const statements = {
-    nextNumber: db.prepare(`SELECT COALESCE(MAX(id), 0) + ${FIRST_ORDER_NUMBER} FROM orders`).pluck(),
-    byKey: db.prepare('SELECT id, number FROM orders WHERE idempotency_key = ?'),
-    insert: db.prepare(`
-      INSERT INTO orders (number, idempotency_key, customer_name, phone, email, city, address, customer_note,
-                          latitude, longitude, location_accuracy_m, currency, subtotal_cents, delivery_cents,
-                          total_cents, item_count, ip_hash)
-      VALUES (@number, @idempotencyKey, @customerName, @phone, @email, @city, @address, @customerNote,
-              @latitude, @longitude, @locationAccuracy, @currency, @subtotalCents, @deliveryCents,
-              @totalCents, @itemCount, @ipHash)`),
-    insertItem: db.prepare(`INSERT INTO order_items (order_id, piece_id, piece_name, option_label, quantity, unit_price_cents)
-                            VALUES (?, ?, ?, ?, ?, ?)`),
-    list: db.prepare(`
-      SELECT id, number, status, customer_name, phone, city, total_cents, currency, item_count, created_at
-      FROM orders
-      WHERE (@status = '' OR status = @status)
-        AND (@q = '' OR number LIKE '%' || @q || '%' OR customer_name LIKE '%' || @q || '%'
-             OR phone LIKE '%' || @q || '%' OR city LIKE '%' || @q || '%')
-      ORDER BY id DESC LIMIT @limit OFFSET @offset`),
-    count: db.prepare(`SELECT COUNT(*) FROM orders WHERE (@status = '' OR status = @status)
-                       AND (@q = '' OR number LIKE '%' || @q || '%' OR customer_name LIKE '%' || @q || '%'
-                            OR phone LIKE '%' || @q || '%' OR city LIKE '%' || @q || '%')`).pluck(),
-    get: db.prepare('SELECT * FROM orders WHERE id = ?'),
-    items: db.prepare('SELECT * FROM order_items WHERE order_id = ? ORDER BY id'),
-    update: db.prepare(`UPDATE orders SET status = ?, admin_note = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-                        WHERE id = ?`),
-    remove: db.prepare('DELETE FROM orders WHERE id = ?'),
-    countByStatus: db.prepare('SELECT status, COUNT(*) AS count FROM orders GROUP BY status'),
-    since: db.prepare(`SELECT COUNT(*) AS orders, COALESCE(SUM(total_cents), 0) AS total_cents
-                       FROM orders WHERE created_at >= ? AND status != 'cancelled'`),
-    recentFromIp: db.prepare('SELECT COUNT(*) FROM orders WHERE ip_hash = ? AND created_at >= ?').pluck(),
-    topPieces: db.prepare(`
-      SELECT oi.piece_name, SUM(oi.quantity) AS quantity
-      FROM order_items oi JOIN orders o ON o.id = oi.order_id
-      WHERE o.created_at >= ? AND o.status != 'cancelled'
-      GROUP BY oi.piece_name ORDER BY quantity DESC LIMIT ?`),
-    all: db.prepare('SELECT * FROM orders ORDER BY id'),
-    allItems: db.prepare('SELECT * FROM order_items ORDER BY order_id, id'),
-  };
-
   return {
-    findByIdempotencyKey: (key) => statements.byKey.get(key),
+    findByIdempotencyKey: (key) => db.get('SELECT id, number FROM orders WHERE idempotency_key = ?', [key]),
 
-    // Numbers are assigned inside the transaction; SQLite allows one writer at a time,
-    // so two orders can never get the same number.
-    create: db.transaction((order, items) => {
-      const number = `OK-${statements.nextNumber.get()}`;
-      const id = Number(statements.insert.run({ ...order, number }).lastInsertRowid);
-      for (const item of items) {
-        statements.insertItem.run(id, item.pieceId, item.pieceName, item.optionLabel, item.quantity, item.unitPriceCents);
-      }
-      return { id, number };
-    }),
-
-    list: ({ status = '', q = '', limit = 50, offset = 0 } = {}) => statements.list.all({ status, q, limit, offset }),
-    count: ({ status = '', q = '' } = {}) => statements.count.get({ status, q }),
-
-    get(id) {
-      const order = statements.get.get(id);
-      return order ? { ...order, items: statements.items.all(id) } : null;
+    // One round trip, all-or-nothing. The number is computed inside the INSERT, and the database
+    // runs one write at a time, so two orders can never get the same number.
+    async create(order, items) {
+      const lookupOrderId = '(SELECT id FROM orders WHERE idempotency_key = @idempotencyKey)';
+      const results = await db.batch([
+        statement(`
+          INSERT INTO orders (number, idempotency_key, customer_name, phone, email, city, address, customer_note,
+                              latitude, longitude, location_accuracy_m, currency, subtotal_cents, delivery_cents,
+                              total_cents, item_count, ip_hash)
+          VALUES ((SELECT 'OK-' || (COALESCE(MAX(id), 0) + ${FIRST_ORDER_NUMBER}) FROM orders),
+                  @idempotencyKey, @customerName, @phone, @email, @city, @address, @customerNote,
+                  @latitude, @longitude, @locationAccuracy, @currency, @subtotalCents, @deliveryCents,
+                  @totalCents, @itemCount, @ipHash)`, order),
+        ...items.map((item) => statement(`
+          INSERT INTO order_items (order_id, piece_id, piece_name, option_label, quantity, unit_price_cents)
+          VALUES (${lookupOrderId}, @pieceId, @pieceName, @optionLabel, @quantity, @unitPriceCents)`,
+        { ...item, idempotencyKey: order.idempotencyKey })),
+        statement('SELECT id, number FROM orders WHERE idempotency_key = ?', [order.idempotencyKey]),
+      ]);
+      return results.at(-1)[0];
     },
 
-    update: (id, { status, adminNote }) => statements.update.run(status, adminNote, id),
-    remove: (id) => statements.remove.run(id),
+    list: ({ status = '', q = '', limit = 50, offset = 0 } = {}) => db.all(`
+      SELECT id, number, status, customer_name, phone, city, total_cents, currency, item_count, created_at
+      FROM orders WHERE ${SEARCH} ORDER BY id DESC LIMIT @limit OFFSET @offset`, { status, q, limit, offset }),
+    count: ({ status = '', q = '' } = {}) => db.value(`SELECT COUNT(*) FROM orders WHERE ${SEARCH}`, { status, q }),
 
-    countByStatus() {
+    async get(id) {
+      const [order, items] = await Promise.all([
+        db.get('SELECT * FROM orders WHERE id = ?', [id]),
+        db.all('SELECT * FROM order_items WHERE order_id = ? ORDER BY id', [id]),
+      ]);
+      return order ? { ...order, items } : null;
+    },
+
+    update: (id, { status, adminNote }) => db.run(`UPDATE orders SET status = ?, admin_note = ?,
+                                                   updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?`, [status, adminNote, id]),
+    remove: (id) => db.run('DELETE FROM orders WHERE id = ?', [id]),
+
+    async countByStatus() {
       const counts = Object.fromEntries(ORDER_STATUSES.map((status) => [status, 0]));
-      for (const row of statements.countByStatus.all()) counts[row.status] = row.count;
+      for (const row of await db.all('SELECT status, COUNT(*) AS count FROM orders GROUP BY status')) counts[row.status] = row.count;
       return counts;
     },
 
-    totalsSince: (isoDate) => statements.since.get(isoDate),
-    countRecentFromIp: (ipHash, isoDate) => statements.recentFromIp.get(ipHash, isoDate),
-    topPieces: (isoDate, limit = 5) => statements.topPieces.all(isoDate, limit),
+    totalsSince: (isoDate) => db.get(`SELECT COUNT(*) AS orders, COALESCE(SUM(total_cents), 0) AS total_cents
+                                      FROM orders WHERE created_at >= ? AND status != 'cancelled'`, [isoDate]),
+    countRecentFromIp: (ipHash, isoDate) => db.value('SELECT COUNT(*) FROM orders WHERE ip_hash = ? AND created_at >= ?', [ipHash, isoDate]),
+    topPieces: (isoDate, limit = 5) => db.all(`
+      SELECT oi.piece_name, SUM(oi.quantity) AS quantity
+      FROM order_items oi JOIN orders o ON o.id = oi.order_id
+      WHERE o.created_at >= ? AND o.status != 'cancelled'
+      GROUP BY oi.piece_name ORDER BY quantity DESC LIMIT ?`, [isoDate, limit]),
 
-    exportAll() {
+    async exportAll() {
+      const [orders, items] = await Promise.all([
+        db.all('SELECT * FROM orders ORDER BY id'),
+        db.all('SELECT * FROM order_items ORDER BY order_id, id'),
+      ]);
       const itemsByOrder = new Map();
-      for (const item of statements.allItems.all()) {
+      for (const item of items) {
         if (!itemsByOrder.has(item.order_id)) itemsByOrder.set(item.order_id, []);
         itemsByOrder.get(item.order_id).push(item);
       }
-      return statements.all.all().map((order) => ({ ...order, items: itemsByOrder.get(order.id) ?? [] }));
+      return orders.map((order) => ({ ...order, items: itemsByOrder.get(order.id) ?? [] }));
     },
   };
 }

@@ -45,7 +45,7 @@ test('only published pieces reach the catalogue, with prices from the database',
 test('admin text cannot break out of the page (escaping)', async () => {
   const session = await login(app);
   await adminPost(app, session, '/admin/settings', {
-    ...Object.fromEntries(Object.entries(app.repos.settings.getAll())),
+    ...(await app.repos.settings.getAll()),
     hero_line: '</script><script>alert(1)</script>',
     delivery_fee: '',
   });

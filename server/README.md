@@ -1,11 +1,45 @@
 # Ōkeanós shop server
 
 The storefront customers order from, plus the admin the team runs the shop with.
-One small Node.js process with an SQLite database file and an images folder.
-There is nothing else to install or keep running.
 
 - How it is built and why: [`../docs/BACKEND.md`](../docs/BACKEND.md)
 - Rules every change follows: [`../docs/CODING_RULES.md`](../docs/CODING_RULES.md)
+
+It runs in two places with the same code:
+
+| | Database | Photos |
+|---|---|---|
+| **Vercel** (production) | Turso (hosted SQLite) | Vercel Blob |
+| **Your computer / a VPS** | SQLite file in `DATA_DIR` | `DATA_DIR/media` folder |
+
+## Deploy on Vercel
+
+Vercel functions keep nothing on disk between requests, so the database and the photos live in
+two Vercel-connected services. Set them up once:
+
+1. **Project settings → General**
+   - Root Directory: `server`
+   - Framework Preset: Other
+   - Keep "Include files outside the root directory" on: the first deploy loads the starting photos from `../assets` and `../prototype`.
+2. **Storage → Create Database → Turso** → connect it to this project.
+   This adds `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`.
+   If your integration names them differently, add them under these names.
+3. **Storage → Create → Blob** → connect it to this project. This adds `BLOB_READ_WRITE_TOKEN`.
+4. **Settings → Environment Variables**, add:
+   - `OWNER_EMAIL`: your email, for the first admin account
+   - `OWNER_PASSWORD`: at least 12 characters
+   - `OWNER_NAME` (optional)
+   - `PUBLIC_ORIGIN`: only if you use a custom domain, e.g. `https://okeanos.com`
+5. **Redeploy.** The build runs `npm run vercel-build` (`scripts/setup.js`), which:
+   - creates or updates the tables;
+   - loads the 11 Instagram pieces, photos, lookbook and guide (first deploy only);
+   - creates your owner account.
+
+   The build log shows each step as a `[setup]` line.
+6. Open `https://<your-project>.vercel.app/admin` and log in. Then delete `OWNER_PASSWORD` from the
+   environment variables. It is only used to create the account.
+
+If something is missing, the site says which setting to add instead of showing a blank error.
 
 ## Run it on your computer
 
@@ -15,7 +49,7 @@ Needs Node.js 22.9 or newer.
 cd server
 npm install
 cp .env.example .env              # defaults are fine for local use
-npm run seed                      # loads the 11 pieces, photos, lookbook and guide from Instagram
+npm run setup                     # tables + starting catalogue
 npm run create-owner -- "you@example.com" "Your Name"   # prints a password once
 npm run dev                       # http://localhost:3000 and http://localhost:3000/admin
 ```
@@ -23,31 +57,15 @@ npm run dev                       # http://localhost:3000 and http://localhost:3
 Open the site at the exact address in `PUBLIC_ORIGIN` (by default `http://localhost:3000`).
 For example, `127.0.0.1:3000` would fail the admin's same-site check.
 
+To work against the real Vercel database from your computer, copy the Turso and Blob variables
+into `.env` (`vercel env pull .env` does this).
+
 ## Checks
 
 ```bash
-npm test        # 32 tests: security rules, ordering, storefront, admin
+npm test        # 35 tests: security rules, ordering, storefront, admin, serverless behaviour
 npm run bench   # response times of the shop page (server must be running)
 ```
-
-## Put it online
-
-Any small Linux server (1 vCPU / 1 GB is plenty) or a platform with a persistent disk.
-
-1. Install Node 22 and copy the `server` folder. Run `npm ci --omit=dev`.
-2. Create `.env` from `.env.example` with:
-   `NODE_ENV=production`, `PUBLIC_ORIGIN=https://your-domain`, `TRUST_PROXY=true`,
-   a random `IP_HASH_SECRET` and `DATA_DIR=/var/lib/okeanos`.
-3. Put [Caddy](https://caddyserver.com) in front for automatic HTTPS:
-   ```
-   your-domain {
-     encode zstd gzip
-     reverse_proxy 127.0.0.1:3000
-   }
-   ```
-4. Run `npm run seed`, then `npm run create-owner`, then keep `npm start` running with systemd (or pm2).
-5. **Back up `DATA_DIR`** daily. It holds `okeanos.db` and the `media/` photos.
-   The admin's Backup page also downloads the database on demand.
 
 ## The admin at a glance
 
@@ -55,13 +73,13 @@ Any small Linux server (1 vCPU / 1 GB is plenty) or a platform with a persistent
 |---|---|
 | Dashboard | New orders to confirm, sales, most ordered pieces, pause/resume orders in one click |
 | Orders | Filter by status and search. Each order shows the customer, a WhatsApp/Call button, the address and the map pin. Move it through *New → Confirmed → Being made → Out for delivery → Delivered*. You can add private notes, print a delivery slip and export to CSV |
-| Pieces | Add, edit, duplicate, archive. Prices, badges, "New in", sold out, options with colour dots, collections, photos (cut-outs and photos), order in the shop, bulk actions |
+| Pieces | Add, edit, duplicate, archive. Prices, badges, "New in", sold out, options with colour dots, collections, photos (resized in the browser before upload), order in the shop, bulk actions |
 | Categories / Collections | The shop's menu and filters |
 | Lookbook | The photos of pieces being worn |
 | Guide | The care, sizing and returns questions |
 | Settings | Announcement, texts, currency, delivery fee, payment note, WhatsApp number, policies, SEO *(owners)* |
 | Team | Add people as *owner* or *editor*, reset passwords *(owners)* |
 | Activity | Who changed what, and when |
-| Backup | Download the database and the orders spreadsheet *(owners)* |
+| Backup | Download everything as JSON and the orders spreadsheet *(owners)* |
 
 Keyboard: **Ctrl/⌘ + S** saves the piece or settings form you are on.

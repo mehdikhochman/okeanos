@@ -59,32 +59,39 @@ export const ORDER_BODY_SCHEMA = {
   },
 };
 
-export function placeOrder(repos, body, ip) {
-  const settings = repos.settings.getAll();
+export async function placeOrder(repos, body, ip) {
+  const settings = await repos.settings.getAll();
   if (settings.orders_open !== '1') throw new HttpError(403, settings.orders_closed_message);
   if (body.website) throw badRequest('The order could not be placed.');
 
-  const existing = repos.orders.findByIdempotencyKey(body.idempotencyKey);
+  const existing = await repos.orders.findByIdempotencyKey(body.idempotencyKey);
   if (existing) return { created: false, number: existing.number };
 
   const ipHash = hmac(config.ipHashSecret, ip ?? '');
   const since = new Date(Date.now() - DAY_MS).toISOString();
-  if (repos.orders.countRecentFromIp(ipHash, since) >= MAX_ORDERS_PER_IP_PER_DAY) {
+  if ((await repos.orders.countRecentFromIp(ipHash, since)) >= MAX_ORDERS_PER_IP_PER_DAY) {
     throw new HttpError(429, 'Too many orders from this connection today. Please contact us on WhatsApp.');
   }
 
-  const items = body.items.map((item) => resolveItem(repos, item));
+  const items = await Promise.all(body.items.map((item) => resolveItem(repos, item)));
   const order = buildOrder(body, items, settings, ipHash);
-  const { number } = repos.orders.create(order, items);
-  return { created: true, number };
+  try {
+    const { number } = await repos.orders.create(order, items);
+    return { created: true, number };
+  } catch (error) {
+    // Two identical requests at the same instant: the second one hits the unique key. Same order.
+    const sameOrder = await repos.orders.findByIdempotencyKey(body.idempotencyKey);
+    if (sameOrder) return { created: false, number: sameOrder.number };
+    throw error;
+  }
 }
 
-function resolveItem(repos, item) {
-  const piece = repos.pieces.getForOrder(item.pieceId);
+async function resolveItem(repos, item) {
+  const piece = await repos.pieces.getForOrder(item.pieceId);
   if (!piece) throw badRequest('One of the pieces in your bag is no longer available. Remove it and try again.');
   if (piece.availability === 'sold_out') throw badRequest(`${piece.name} is sold out. Remove it from your bag and try again.`);
 
-  const options = repos.pieces.optionLabels(piece.id);
+  const options = await repos.pieces.optionLabels(piece.id);
   const optionLabel = item.option ?? '';
   if (options.length && !options.includes(optionLabel)) throw badRequest(`Choose an option for ${piece.name}.`);
   if (!options.length && optionLabel) throw badRequest(`${piece.name} has no options.`);

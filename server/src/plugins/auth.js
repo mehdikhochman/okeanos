@@ -37,7 +37,7 @@ export function registerAuth(app) {
 
   app.addHook('onRequest', async (request, reply) => {
     if (isPublicPath(request.url)) return;
-    const session = app.repos.sessions.findValid(request.cookies[SESSION_COOKIE]);
+    const session = await app.repos.sessions.findValid(request.cookies[SESSION_COOKIE]);
     if (!session) {
       if (request.method === 'GET') return reply.redirect(`/admin/login?next=${encodeURIComponent(request.url)}`);
       throw new HttpError(401, 'Your session has ended. Please log in again.');

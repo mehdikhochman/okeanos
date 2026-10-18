@@ -1,39 +1,37 @@
 // Activity log and backups.
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import { activityPage, backupPage } from '../../admin-ui/views/system.js';
-import { randomToken } from '../../lib/crypto.js';
 import { logActivity, pageContext, parsePage, sendPage } from './helpers.js';
 
 const PAGE_SIZE = 50;
+// Everything needed to rebuild the shop. Sessions are left out on purpose: they are login keys.
+const BACKUP_TABLES = ['settings', 'users', 'categories', 'collections', 'images', 'pieces', 'piece_options',
+  'piece_images', 'piece_collections', 'lookbook_photos', 'guide_entries', 'orders', 'order_items', 'activity_log'];
 
 export async function systemRoutes(app) {
   const { activity, db } = app.repos;
 
   app.get('/activity', async (request, reply) => {
     const page = parsePage(request.query.page);
-    return sendPage(reply, activityPage({
-      ctx: pageContext(app, request),
-      entries: activity.list({ limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
-      page,
-      pageCount: Math.max(1, Math.ceil(activity.count() / PAGE_SIZE)),
-    }));
+    const [ctx, entries, total] = await Promise.all([
+      pageContext(app, request),
+      activity.list({ limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
+      activity.count(),
+    ]);
+    return sendPage(reply, activityPage({ ctx, entries, page, pageCount: Math.max(1, Math.ceil(total / PAGE_SIZE)) }));
   });
 
   app.get('/backup', { config: { role: 'owner' } }, async (request, reply) =>
-    sendPage(reply, backupPage({ ctx: pageContext(app, request) })));
+    sendPage(reply, backupPage({ ctx: await pageContext(app, request) })));
 
-  // SQLite's online backup copies a consistent snapshot while the shop keeps running.
+  // A JSON copy of every table. It works the same on a local file and on Turso.
+  // Table names come from the fixed list above, never from input.
   app.post('/backup/database', { config: { role: 'owner' } }, async (request, reply) => {
-    const file = path.join(os.tmpdir(), `okeanos-backup-${randomToken(8)}.db`);
-    await db.backup(file);
-    logActivity(app, request, 'backup.download', 'downloaded a database backup');
-    const stream = fs.createReadStream(file);
-    stream.on('close', () => fs.rm(file, { force: true }, () => {}));
+    const rows = await Promise.all(BACKUP_TABLES.map((table) => db.all(`SELECT * FROM ${table}`)));
+    const backup = { createdAt: new Date().toISOString(), tables: Object.fromEntries(BACKUP_TABLES.map((table, i) => [table, rows[i]])) };
+    await logActivity(app, request, 'backup.download', 'downloaded a backup');
     return reply
-      .type('application/vnd.sqlite3')
-      .header('content-disposition', `attachment; filename="okeanos-backup-${new Date().toISOString().slice(0, 10)}.db"`)
-      .send(stream);
+      .type('application/json; charset=utf-8')
+      .header('content-disposition', `attachment; filename="okeanos-backup-${backup.createdAt.slice(0, 10)}.json"`)
+      .send(JSON.stringify(backup, null, 1));
   });
 }

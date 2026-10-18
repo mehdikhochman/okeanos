@@ -9,6 +9,7 @@ import { config } from '../config.js';
 import { escapeHtml, html, jsonForScript } from '../lib/html.js';
 import { sha256, sha256Base64 } from '../lib/crypto.js';
 import { mediaUrl } from '../lib/media.js';
+import { IMG_SOURCES } from '../plugins/security-headers.js';
 
 const TEMPLATE = fs.readFileSync(new URL('./template.html', import.meta.url), 'utf8');
 const SCRIPT = fs.readFileSync(new URL('./storefront.js', import.meta.url), 'utf8');
@@ -20,28 +21,37 @@ const MATERIALS = {
 };
 const HEX_COLOUR = /^#[0-9a-f]{6}$/i;
 
+// Several server instances may run at once (Vercel starts more under load). Each keeps its own
+// copy of the page and compares it with catalogue_version, which every admin change increases.
 export function createStorefront({ repos }) {
   let page = null;
+  let building = null;
   return {
-    getPage() {
-      page ??= buildPage(repos);
+    async getPage() {
+      const version = await repos.settings.catalogueVersion();
+      if (page?.version === version) return page;
+      building ??= buildPage(repos, version).finally(() => { building = null; });
+      page = await building;
       return page;
     },
-    invalidate() {
+    async invalidate() {
       page = null;
+      await repos.settings.bumpCatalogueVersion();
     },
   };
 }
 
-function buildPage(repos) {
-  const settings = repos.settings.getAll();
-  const catalogue = buildCatalogue(repos, settings);
+async function buildPage(repos, version) {
+  const settings = await repos.settings.getAll();
+  const catalogue = await buildCatalogue(repos, settings);
+  const guideEntries = await repos.guide.listVisible();
   // A replacer function, because a replacement string would treat "$$" and "$'" in the script as patterns.
   const withScript = TEMPLATE.replace('/*STOREFRONT_SCRIPT*/', () => SCRIPT);
-  const document = fillTemplate(withScript, pageValues(settings, catalogue, repos));
+  const document = fillTemplate(withScript, pageValues(settings, catalogue, guideEntries));
   const buffer = Buffer.from(document);
 
   return {
+    version,
     html: buffer,
     br: zlib.brotliCompressSync(buffer, {
       params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 10, [zlib.constants.BROTLI_PARAM_SIZE_HINT]: buffer.length },
@@ -60,7 +70,7 @@ function contentSecurityPolicy(document) {
     `script-src ${hashes.join(' ')}`,
     // Inline style attributes are used for per-piece colours and light positions. Styles cannot run code.
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data:",
+    IMG_SOURCES,
     "font-src 'self'",
     "connect-src 'self'",
     "form-action 'self'",
@@ -79,7 +89,7 @@ function fillTemplate(template, values) {
 }
 
 function imageFor(row) {
-  return { s: mediaUrl(row.file_key, 480), l: mediaUrl(row.file_key, 1200), w: row.width, h: row.height };
+  return { s: mediaUrl(row, 480), l: mediaUrl(row, 1200), w: row.width, h: row.height };
 }
 
 function toPublicPiece(piece) {
@@ -107,16 +117,19 @@ function toPublicPiece(piece) {
   };
 }
 
-function buildCatalogue(repos, settings) {
-  const pieces = repos.pieces.listPublished().map(toPublicPiece);
+async function buildCatalogue(repos, settings) {
+  const [published, categories, collections, lookbook] = await Promise.all([
+    repos.pieces.listPublished(), repos.categories.list(), repos.collections.list(), repos.lookbook.listVisible(),
+  ]);
+  const pieces = published.map(toPublicPiece);
   const usedCategories = new Set(pieces.map((piece) => piece.cat));
   const usedCollections = new Set(pieces.flatMap((piece) => piece.collections));
 
   return {
     pieces,
-    categories: repos.categories.list().filter((c) => usedCategories.has(c.slug)).map(({ slug, name }) => ({ slug, name })),
-    collections: repos.collections.list().filter((c) => c.is_visible && usedCollections.has(c.slug)).map(({ slug, name }) => ({ slug, name })),
-    lookbook: repos.lookbook.listVisible().map((photo) => ({ ...imageFor(photo), caption: photo.caption })),
+    categories: categories.filter((c) => usedCategories.has(c.slug)).map(({ slug, name }) => ({ slug, name })),
+    collections: collections.filter((c) => c.is_visible && usedCollections.has(c.slug)).map(({ slug, name }) => ({ slug, name })),
+    lookbook: lookbook.map((photo) => ({ ...imageFor(photo), caption: photo.caption })),
     settings: {
       currency: settings.currency,
       deliveryCents: settings.delivery_fee === '' ? null : Number(settings.delivery_fee),
@@ -126,7 +139,7 @@ function buildCatalogue(repos, settings) {
   };
 }
 
-function pageValues(settings, catalogue, repos) {
+function pageValues(settings, catalogue, guideEntries) {
   const ogPhoto = catalogue.lookbook[0] ?? catalogue.pieces.find((piece) => piece.photos[0])?.photos[0];
   return {
     ...settings,
@@ -141,7 +154,7 @@ function pageValues(settings, catalogue, repos) {
     about_blocks: [1, 2, 3]
       .filter((n) => settings[`about_${n}_title`])
       .map((n) => html`<div><h3>${settings[`about_${n}_title`]}</h3><p>${settings[`about_${n}_text`]}</p></div>`),
-    guide_section: guideSection(repos.guide.listVisible()),
+    guide_section: guideSection(guideEntries),
     contact_links: contactLinks(settings),
     city_options: settings.cities.split('\n').map((city) => city.trim()).filter(Boolean).map((city) => html`<option value="${city}">`),
     done_contact_link: settings.whatsapp_number

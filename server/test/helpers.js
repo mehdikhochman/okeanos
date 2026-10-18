@@ -13,20 +13,20 @@ export const EDITOR = { email: 'editor@test.local', password: 'editor-password-1
 
 export async function buildTestApp() {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'okeanos-test-'));
-  const app = await buildApp({ dataDir, databaseFile: ':memory:', logger: false });
+  const app = await buildApp({ dataDir, databaseUrl: `file:${path.join(dataDir, 'test.db')}`, mediaDriver: 'local', logger: false });
   const { repos } = app;
 
   for (const user of [{ ...OWNER, role: 'owner' }, { ...EDITOR, role: 'editor' }]) {
-    repos.users.create({ email: user.email, name: user.name, role: user.role, passwordHash: await hashPassword(user.password) });
+    await repos.users.create({ email: user.email, name: user.name, role: user.role, passwordHash: await hashPassword(user.password) });
   }
-  const earrings = repos.categories.create({ name: 'Earrings', slug: 'earrings' });
-  const hoopsId = repos.pieces.create({
+  const earrings = await repos.categories.create({ name: 'Earrings', slug: 'earrings' });
+  const hoopsId = await repos.pieces.create({
     name: 'Summer hoops', typeLabel: 'Earrings', categoryId: earrings, finish: 'gold', accent: 'beads', badge: 'New',
     isNew: true, description: 'Small beaded hoops.', priceCents: 4800, status: 'published', availability: 'made_to_order',
     optionLabel: 'Colour', instagramUrl: '', options: [{ label: 'White', swatch: '#F4EFE4' }, { label: 'Pastel', swatch: '' }],
     collectionIds: [],
   });
-  const draftId = repos.pieces.create({
+  const draftId = await repos.pieces.create({
     name: 'Secret draft', typeLabel: 'Ring', categoryId: earrings, finish: 'gold', accent: 'gold', badge: '', isNew: false,
     description: '', priceCents: null, status: 'draft', availability: 'made_to_order', optionLabel: '', instagramUrl: '',
     options: [], collectionIds: [],

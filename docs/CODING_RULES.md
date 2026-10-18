@@ -91,8 +91,9 @@ correctness, then speed, then convenience.
    `Cache-Control: immutable` for one year.
 4. **Admin pages are server-rendered HTML** (no framework download). Links are
    prefetched on hover with Speculation Rules, so most clicks open instantly.
-5. **SQLite in WAL mode** with prepared statements cached at start-up. Queries
-   that run on every request must use an index.
+5. **Count round trips.** On Turso every query crosses the network: run independent
+   queries with `Promise.all`, fetch lists in one query instead of one per row, and
+   group writes with `db.batch`. Queries that run on every request must use an index.
 6. **Do expensive work once**: at boot or at save time, never per request.
 7. **Measure before optimising.** `npm run bench` reports response times.
 

@@ -45,7 +45,7 @@ export function piecesListPage({ ctx, pieces, categories, filters, currency }) {
           <tbody>${pieces.map((piece) => html`<tr>
             <td class="check"><input type="checkbox" name="ids" value="${piece.id}" aria-label="Select ${piece.name}"></td>
             <td class="piece-cell">
-              ${piece.thumb_key ? html`<img src="${mediaUrl(piece.thumb_key, 480)}" alt="" width="48" height="48" loading="lazy">` : html`<span class="no-thumb"></span>`}
+              ${piece.thumb_key ? html`<img src="${mediaUrl({ file_key: piece.thumb_key, base_url: piece.thumb_base }, 480)}" alt="" width="48" height="48" loading="lazy">` : html`<span class="no-thumb"></span>`}
               <a href="/admin/pieces/${piece.id}"><b>${piece.name}</b></a>
               ${piece.badge ? html`<span class="tag">${piece.badge}</span>` : ''}
               ${piece.availability === 'sold_out' ? html`<span class="tag">Sold out</span>` : ''}
@@ -120,7 +120,7 @@ function photoManager({ piece, csrf }) {
     <p class="help">The first <b>cut-out</b> (transparent background) sits on the plaster tile with live shadows.
       Photos show on hover and in the product view. Use the arrows to change the order.</p>
     ${piece.images.length ? html`<ul class="photo-grid">${piece.images.map((image) => html`<li>
-      <img src="${mediaUrl(image.file_key, 480)}" alt="" loading="lazy" class="${image.role === 'cutout' ? 'on-plaster' : ''}">
+      <img src="${mediaUrl(image, 480)}" alt="" loading="lazy" class="${image.role === 'cutout' ? 'on-plaster' : ''}">
       <form method="post" action="/admin/pieces/${piece.id}/images/${image.image_id}" class="stack">
         ${csrfField(csrf)}
         <label class="visually-hidden" for="role-${image.image_id}">Type</label>
@@ -141,8 +141,9 @@ function photoManager({ piece, csrf }) {
       ${csrfField(csrf)}
       <label for="f-photos" class="label">Add photos</label>
       <input id="f-photos" name="photos" type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple required>
-      <p class="help">JPEG, PNG or WebP, up to 15 MB each. PNGs with a transparent background become cut-outs automatically.</p>
+      <p class="help">JPEG, PNG or WebP. Large photos are resized before upload. PNGs with a transparent background become cut-outs automatically.</p>
       <button class="button secondary" type="submit">Upload</button>
+      <p class="help" data-upload-status role="status"></p>
     </form>
   </section>`;
 }

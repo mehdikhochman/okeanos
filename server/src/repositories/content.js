@@ -2,110 +2,94 @@
 import { createPositionTools } from './positions.js';
 
 export function createImagesRepository(db) {
-  const statements = {
-    insert: db.prepare('INSERT OR IGNORE INTO images (file_key, width, height, has_alpha) VALUES (?, ?, ?, ?)'),
-    byKey: db.prepare('SELECT * FROM images WHERE file_key = ?'),
-    get: db.prepare('SELECT * FROM images WHERE id = ?'),
-    usage: db.prepare(`SELECT (SELECT COUNT(*) FROM piece_images WHERE image_id = ?)
-                            + (SELECT COUNT(*) FROM lookbook_photos WHERE image_id = ?)`).pluck(),
-    remove: db.prepare('DELETE FROM images WHERE id = ?'),
-  };
-
   return {
     // The same file uploaded twice is stored once (file_key is a content hash).
-    save({ fileKey, width, height, hasAlpha }) {
-      statements.insert.run(fileKey, width, height, hasAlpha ? 1 : 0);
-      return statements.byKey.get(fileKey);
+    async save({ fileKey, width, height, hasAlpha, baseUrl }) {
+      await db.run('INSERT OR IGNORE INTO images (file_key, width, height, has_alpha, base_url) VALUES (?, ?, ?, ?, ?)',
+        [fileKey, width, height, hasAlpha, baseUrl]);
+      return db.get('SELECT * FROM images WHERE file_key = ?', [fileKey]);
     },
-    get: (id) => statements.get.get(id),
-    // Returns the file key when the image is no longer used anywhere, so the files can be deleted.
-    removeIfUnused(id) {
-      const image = statements.get.get(id);
-      if (!image || statements.usage.get(id, id) > 0) return null;
-      statements.remove.run(id);
-      return image.file_key;
+    get: (id) => db.get('SELECT * FROM images WHERE id = ?', [id]),
+    // Returns the image when it is no longer used anywhere, so its files can be deleted.
+    async removeIfUnused(id) {
+      const image = await db.get('SELECT * FROM images WHERE id = ?', [id]);
+      if (!image) return null;
+      const usage = await db.value(`SELECT (SELECT COUNT(*) FROM piece_images WHERE image_id = ?)
+                                         + (SELECT COUNT(*) FROM lookbook_photos WHERE image_id = ?)`, [id, id]);
+      if (usage > 0) return null;
+      await db.run('DELETE FROM images WHERE id = ?', [id]);
+      return image;
     },
   };
 }
 
 export function createLookbookRepository(db) {
   const positions = createPositionTools(db, 'lookbook_photos');
-  const statements = {
-    list: db.prepare(`SELECT l.*, i.file_key, i.width, i.height FROM lookbook_photos l
-                      JOIN images i ON i.id = l.image_id ORDER BY l.position, l.id`),
-    get: db.prepare('SELECT * FROM lookbook_photos WHERE id = ?'),
-    insert: db.prepare('INSERT INTO lookbook_photos (image_id, caption, position) VALUES (?, ?, ?)'),
-    update: db.prepare('UPDATE lookbook_photos SET caption = ?, is_visible = ? WHERE id = ?'),
-    remove: db.prepare('DELETE FROM lookbook_photos WHERE id = ?'),
-  };
-
+  const list = () => db.all(`SELECT l.*, i.file_key, i.width, i.height, i.base_url FROM lookbook_photos l
+                             JOIN images i ON i.id = l.image_id ORDER BY l.position, l.id`);
   return {
-    list: () => statements.list.all(),
-    listVisible: () => statements.list.all().filter((photo) => photo.is_visible),
-    get: (id) => statements.get.get(id),
-    create: (imageId, caption) => Number(statements.insert.run(imageId, caption, positions.nextPosition()).lastInsertRowid),
-    update: (id, { caption, isVisible }) => statements.update.run(caption, isVisible ? 1 : 0, id),
-    remove: (id) => statements.remove.run(id),
+    list,
+    listVisible: async () => (await list()).filter((photo) => photo.is_visible),
+    get: (id) => db.get('SELECT * FROM lookbook_photos WHERE id = ?', [id]),
+    async create(imageId, caption) {
+      return (await db.run('INSERT INTO lookbook_photos (image_id, caption, position) VALUES (?, ?, ?)', [imageId, caption, await positions.nextPosition()])).lastId;
+    },
+    update: (id, { caption, isVisible }) => db.run('UPDATE lookbook_photos SET caption = ?, is_visible = ? WHERE id = ?', [caption, isVisible, id]),
+    remove: (id) => db.run('DELETE FROM lookbook_photos WHERE id = ?', [id]),
     move: positions.move,
   };
 }
 
 export function createGuideRepository(db) {
   const positions = createPositionTools(db, 'guide_entries');
-  const statements = {
-    list: db.prepare('SELECT * FROM guide_entries ORDER BY position, id'),
-    get: db.prepare('SELECT * FROM guide_entries WHERE id = ?'),
-    insert: db.prepare('INSERT INTO guide_entries (question, answer, is_visible, position) VALUES (?, ?, ?, ?)'),
-    update: db.prepare('UPDATE guide_entries SET question = ?, answer = ?, is_visible = ? WHERE id = ?'),
-    remove: db.prepare('DELETE FROM guide_entries WHERE id = ?'),
-  };
-
+  const list = () => db.all('SELECT * FROM guide_entries ORDER BY position, id');
   return {
-    list: () => statements.list.all(),
-    listVisible: () => statements.list.all().filter((entry) => entry.is_visible),
-    get: (id) => statements.get.get(id),
-    create({ question, answer, isVisible }) {
-      return Number(statements.insert.run(question, answer, isVisible ? 1 : 0, positions.nextPosition()).lastInsertRowid);
+    list,
+    listVisible: async () => (await list()).filter((entry) => entry.is_visible),
+    get: (id) => db.get('SELECT * FROM guide_entries WHERE id = ?', [id]),
+    async create({ question, answer, isVisible }) {
+      const result = await db.run('INSERT INTO guide_entries (question, answer, is_visible, position) VALUES (?, ?, ?, ?)',
+        [question, answer, isVisible, await positions.nextPosition()]);
+      return result.lastId;
     },
-    update: (id, { question, answer, isVisible }) => statements.update.run(question, answer, isVisible ? 1 : 0, id),
-    remove: (id) => statements.remove.run(id),
+    update: (id, { question, answer, isVisible }) =>
+      db.run('UPDATE guide_entries SET question = ?, answer = ?, is_visible = ? WHERE id = ?', [question, answer, isVisible, id]),
+    remove: (id) => db.run('DELETE FROM guide_entries WHERE id = ?', [id]),
     move: positions.move,
   };
 }
 
+// catalogue_version is not a visible setting: it counts storefront changes, so every server
+// instance (Vercel runs several) knows when its cached copy of the shop page is out of date.
+const VERSION_KEY = 'catalogue_version';
+
 export function createSettingsRepository(db, fields) {
-  const statements = {
-    all: db.prepare('SELECT key, value FROM settings'),
-    upsert: db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value'),
-  };
   const defaults = Object.fromEntries(fields.map((field) => [field.key, field.default ?? '']));
+  const upsert = 'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value';
 
   return {
     // Every known key is always present, falling back to its default.
-    getAll() {
-      const stored = Object.fromEntries(statements.all.all().map((row) => [row.key, row.value]));
+    async getAll() {
+      const stored = Object.fromEntries((await db.all('SELECT key, value FROM settings')).map((row) => [row.key, row.value]));
       return { ...defaults, ...stored };
     },
-    setMany: db.transaction((values) => {
-      for (const [key, value] of Object.entries(values)) {
-        if (key in defaults) statements.upsert.run(key, String(value));
-      }
-    }),
+    async setMany(values) {
+      const known = Object.entries(values).filter(([key]) => key in defaults);
+      if (!known.length) return;
+      await db.batch(known.map(([key, value]) => ({ sql: upsert, args: [key, String(value)] })));
+    },
+    catalogueVersion: async () => Number(await db.value('SELECT value FROM settings WHERE key = ?', [VERSION_KEY]) ?? 0),
+    bumpCatalogueVersion: () => db.run(`INSERT INTO settings (key, value) VALUES (?, '1')
+                                        ON CONFLICT (key) DO UPDATE SET value = CAST(value AS INTEGER) + 1`, [VERSION_KEY]),
   };
 }
 
 export function createActivityRepository(db) {
-  const statements = {
-    insert: db.prepare('INSERT INTO activity_log (user_id, action, summary) VALUES (?, ?, ?)'),
-    list: db.prepare(`SELECT a.*, u.name AS user_name FROM activity_log a
-                      LEFT JOIN users u ON u.id = a.user_id
-                      ORDER BY a.id DESC LIMIT ? OFFSET ?`),
-    count: db.prepare('SELECT COUNT(*) FROM activity_log').pluck(),
-  };
-
   return {
-    log: (userId, action, summary) => statements.insert.run(userId ?? null, action, summary.slice(0, 300)),
-    list: ({ limit = 50, offset = 0 } = {}) => statements.list.all(limit, offset),
-    count: () => statements.count.get(),
+    log: (userId, action, summary) => db.run('INSERT INTO activity_log (user_id, action, summary) VALUES (?, ?, ?)', [userId ?? null, action, summary.slice(0, 300)]),
+    list: ({ limit = 50, offset = 0 } = {}) => db.all(`SELECT a.*, u.name AS user_name FROM activity_log a
+                                                       LEFT JOIN users u ON u.id = a.user_id
+                                                       ORDER BY a.id DESC LIMIT ? OFFSET ?`, [limit, offset]),
+    count: () => db.value('SELECT COUNT(*) FROM activity_log'),
   };
 }

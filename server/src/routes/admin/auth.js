@@ -19,7 +19,7 @@ export async function authRoutes(app) {
   const { users, sessions, activity } = app.repos;
 
   app.get('/login', async (request, reply) => {
-    if (sessions.findValid(request.cookies[SESSION_COOKIE])) return redirect(reply, '/admin');
+    if (await sessions.findValid(request.cookies[SESSION_COOKIE])) return redirect(reply, '/admin');
     return sendPage(reply, loginPage({ next: safeNext(request.query.next) }));
   });
 
@@ -27,23 +27,24 @@ export async function authRoutes(app) {
     const email = String(request.body?.email ?? '').trim().slice(0, 120);
     const password = String(request.body?.password ?? '').slice(0, 200);
     const next = safeNext(request.body?.next);
-    const user = email ? users.findByEmail(email) : null;
+    const user = email ? await users.findByEmail(email) : null;
 
     const passwordMatches = await verifyPassword(password, user?.password_hash ?? DUMMY_HASH);
     if (!user || users.isLocked(user) || !passwordMatches) {
-      if (user && !users.isLocked(user)) users.recordFailedLogin(user);
+      if (user && !users.isLocked(user)) await users.recordFailedLogin(user);
       return sendPage(reply, loginPage({ error: LOGIN_ERROR, email, next }), 401);
     }
 
-    users.recordSuccessfulLogin(user.id);
-    const token = sessions.create(user.id, request.headers['user-agent'] ?? '');
-    activity.log(user.id, 'auth.login', 'logged in');
+    await users.recordSuccessfulLogin(user.id);
+    await sessions.purgeExpired(); // no background timer on serverless hosts, so tidy up here
+    const token = await sessions.create(user.id, request.headers['user-agent'] ?? '');
+    await activity.log(user.id, 'auth.login', 'logged in');
     reply.setCookie(SESSION_COOKIE, token, sessionCookieOptions);
     return redirect(reply, next);
   });
 
   app.post('/logout', async (request, reply) => {
-    sessions.destroy(request.cookies[SESSION_COOKIE]);
+    await sessions.destroy(request.cookies[SESSION_COOKIE]);
     reply.clearCookie(SESSION_COOKIE, { path: sessionCookieOptions.path });
     return redirect(reply, '/admin/login');
   });

@@ -72,42 +72,50 @@ const GUIDE = [
   ['How do I pay?', 'You pay in cash when your order is delivered.'],
 ];
 
-async function main() {
-  const db = openDatabase(path.join(config.dataDir, 'okeanos.db'));
-  const repos = createRepositories(db);
-  const media = createMediaStore(path.join(config.dataDir, 'media'));
-
-  if (repos.pieces.countByStatus().published + repos.pieces.countByStatus().draft > 0) {
-    console.log('The database already has pieces. Nothing was changed.');
-    return;
+// Loads the starting catalogue into an empty database. Returns false (and changes nothing)
+// when the shop already has pieces, so it is safe to run on every deploy.
+export async function seedCatalogue({ repos, media, log = console.log }) {
+  const counts = await repos.pieces.countByStatus();
+  if (counts.published + counts.draft + counts.archived > 0) return false;
+  if (!fs.existsSync(PHOTOS) || !fs.existsSync(CUTOUTS)) {
+    log(`Starting photos not found in ${PHOTOS}. Skipping the catalogue; add pieces in the admin instead.`);
+    return false;
   }
 
   async function image(file) {
-    const saved = await media.save(fs.readFileSync(file));
-    return repos.images.save(saved);
+    return repos.images.save(await media.save(fs.readFileSync(file)));
   }
 
-  const categoryIds = Object.fromEntries(CATEGORIES.map((name) => [name, repos.categories.create({ name, slug: name.toLowerCase().replace(/\s+/g, '-') })]));
-  const summer = repos.collections.create({ name: 'Summer 2025', slug: 'summer-2025', description: 'The July 2025 drop.', isVisible: true });
+  const categoryIds = {};
+  for (const name of CATEGORIES) categoryIds[name] = await repos.categories.create({ name, slug: name.toLowerCase().replace(/\s+/g, '-') });
+  const summer = await repos.collections.create({ name: 'Summer 2025', slug: 'summer-2025', description: 'The July 2025 drop.', isVisible: true });
 
   for (const piece of PIECES) {
-    const id = repos.pieces.create({
+    const id = await repos.pieces.create({
       name: piece.name, typeLabel: piece.type, categoryId: categoryIds[piece.category], finish: piece.finish ?? 'gold',
       accent: piece.accent ?? 'gold', badge: piece.badge ?? '', isNew: piece.isNew ?? false, description: piece.description,
       priceCents: null, status: 'published', availability: 'made_to_order', optionLabel: piece.optionLabel ?? '',
       instagramUrl: `https://www.instagram.com/p/${piece.post}/`, options: piece.options ?? [], collectionIds: [summer],
     });
-    if (piece.cutout) repos.pieces.addImage(id, (await image(path.join(CUTOUTS, `${piece.cutout}.webp`))).id, 'cutout', piece.name);
-    for (const photo of piece.photos) repos.pieces.addImage(id, (await image(path.join(PHOTOS, `${photo}.jpg`))).id, 'photo', piece.name);
-    console.log(`Added ${piece.name}`);
+    if (piece.cutout) await repos.pieces.addImage(id, (await image(path.join(CUTOUTS, `${piece.cutout}.webp`))).id, 'cutout', piece.name);
+    for (const photo of piece.photos) await repos.pieces.addImage(id, (await image(path.join(PHOTOS, `${photo}.jpg`))).id, 'photo', piece.name);
+    log(`Added ${piece.name}`);
   }
 
-  for (const [photo, caption] of LOOKBOOK) repos.lookbook.create((await image(path.join(PHOTOS, `${photo}.jpg`))).id, caption);
-  for (const [question, answer] of GUIDE) repos.guide.create({ question, answer, isVisible: true });
+  for (const [photo, caption] of LOOKBOOK) await repos.lookbook.create((await image(path.join(PHOTOS, `${photo}.jpg`))).id, caption);
+  for (const [question, answer] of GUIDE) await repos.guide.create({ question, answer, isVisible: true });
 
-  repos.activity.log(null, 'seed', 'loaded the starting catalogue from Instagram');
-  console.log(`Done: ${PIECES.length} pieces, ${LOOKBOOK.length} lookbook photos, ${GUIDE.length} guide entries.`);
-  db.close();
+  await repos.activity.log(null, 'seed', 'loaded the starting catalogue from Instagram');
+  log(`Done: ${PIECES.length} pieces, ${LOOKBOOK.length} lookbook photos, ${GUIDE.length} guide entries.`);
+  return true;
 }
 
-await main();
+// Run directly: `npm run seed`
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const db = await openDatabase({ url: config.databaseUrl, authToken: config.databaseToken });
+  const repos = createRepositories(db);
+  const media = createMediaStore({ driver: config.mediaDriver, mediaDir: path.join(config.dataDir, 'media') });
+  const seeded = await seedCatalogue({ repos, media });
+  if (!seeded) console.log('Nothing was changed.');
+  db.close();
+}

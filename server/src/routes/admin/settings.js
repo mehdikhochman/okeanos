@@ -29,7 +29,7 @@ export async function settingsRoutes(app) {
   const { settings } = app.repos;
 
   app.get('/settings', OWNER_ONLY, async (request, reply) =>
-    sendPage(reply, settingsPage({ ctx: pageContext(app, request), values: settings.getAll() })));
+    sendPage(reply, settingsPage({ ctx: await pageContext(app, request), values: await settings.getAll() })));
 
   app.post('/settings', OWNER_ONLY, async (request, reply) => {
     const form = new FormReader(request.body);
@@ -37,18 +37,18 @@ export async function settingsRoutes(app) {
     if (form.hasErrors) {
       // Money fields are stored as cents; show the saved amount again rather than half-typed text.
       const typed = Object.fromEntries(Object.entries(form.body).filter(([key]) => !MONEY_KEYS.includes(key)));
-      return sendPage(reply, settingsPage({ ctx: pageContext(app, request), values: { ...settings.getAll(), ...typed }, errors: form.errors }), 400);
+      return sendPage(reply, settingsPage({ ctx: await pageContext(app, request), values: { ...settings.getAll(), ...typed }, errors: form.errors }), 400);
     }
-    settings.setMany(values);
-    recordChange(app, request, 'settings.update', 'updated the shop settings');
+    await settings.setMany(values);
+    await recordChange(app, request, 'settings.update', 'updated the shop settings');
     return redirect(reply, '/admin/settings', 'saved');
   });
 
   // One-click pause/resume from the dashboard.
   app.post('/settings/orders-open', OWNER_ONLY, async (request, reply) => {
     const open = request.body.open === '1';
-    settings.setMany({ orders_open: open ? '1' : '0' });
-    recordChange(app, request, 'settings.orders', open ? 'resumed orders' : 'paused orders');
+    await settings.setMany({ orders_open: open ? '1' : '0' });
+    await recordChange(app, request, 'settings.orders', open ? 'resumed orders' : 'paused orders');
     return redirect(reply, '/admin', 'saved');
   });
 }

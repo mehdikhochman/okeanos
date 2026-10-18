@@ -2,11 +2,14 @@
 // (the storefront does, to allow its inline script by hash) but never remove it.
 import { config } from '../config.js';
 
+// Photos come from this app (/media) or, on Vercel, from Vercel Blob's CDN.
+export const IMG_SOURCES = "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com";
+
 export const DEFAULT_CSP = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self'",
-  "img-src 'self' data: blob:",
+  IMG_SOURCES,
   "font-src 'self'",
   "connect-src 'self'",
   "form-action 'self'",

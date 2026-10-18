@@ -25,12 +25,12 @@ export function backupPage({ ctx }) {
     body: html`
       <section class="panel narrow">
         <h2>Download a backup</h2>
-        <p>One file with everything: pieces, orders, customers, settings and the team. Keep it somewhere private: it contains customer details.</p>
+        <p>One JSON file with everything: pieces, orders, customers, settings and the team. Keep it somewhere private: it contains customer details.</p>
         <form method="post" action="/admin/backup/database" data-no-busy>
           ${csrfField(ctx.admin.csrf_token)}
-          <button class="button" type="submit">Download database backup</button>
+          <button class="button" type="submit">Download backup</button>
         </form>
-        <p class="help">Photos are stored separately in the server's <code>data/media</code> folder. Your host's disk snapshots should include it.</p>
+        <p class="help">Photos are stored separately (Vercel Blob, or the <code>data/media</code> folder when self-hosted). Turso also keeps its own automatic backups of the database.</p>
       </section>
       <section class="panel narrow">
         <h2>Spreadsheets</h2>

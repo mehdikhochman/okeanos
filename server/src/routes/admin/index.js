@@ -4,6 +4,7 @@ import fastifyFormbody from '@fastify/formbody';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import { fileURLToPath } from 'node:url';
+import { config } from '../../config.js';
 import { registerAuth } from '../../plugins/auth.js';
 import { SPECULATION_RULES } from '../../admin-ui/layout.js';
 import { authRoutes } from './auth.js';
@@ -16,7 +17,6 @@ import { teamRoutes } from './team.js';
 import { systemRoutes } from './system.js';
 
 const ASSETS_DIR = fileURLToPath(new URL('../../admin-ui/assets/', import.meta.url));
-const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 const ONE_YEAR_SECONDS = 365 * 24 * 60 * 60;
 
 export async function adminRoutes(app) {
@@ -24,7 +24,7 @@ export async function adminRoutes(app) {
   await app.register(fastifyFormbody);
   await app.register(fastifyMultipart, {
     attachFieldsToBody: true,
-    limits: { fileSize: MAX_UPLOAD_BYTES, files: 12, fields: 20, fieldSize: 10_000, parts: 40 },
+    limits: { fileSize: config.maxUploadBytes, files: 12, fields: 20, fieldSize: 10_000, parts: 40 },
     async onFile(part) {
       part.value = await part.toBuffer(); // throws a 413 when a file is over the limit
     },
@@ -49,7 +49,7 @@ export async function adminRoutes(app) {
     decorateReply: false,
     index: false,
     cacheControl: false,
-    setHeaders: (reply) => reply.header('cache-control', `public, max-age=${ONE_YEAR_SECONDS}, immutable`),
+    setHeaders: (reply) => reply.header('cache-control', `public, max-age=${ONE_YEAR_SECONDS}, s-maxage=${ONE_YEAR_SECONDS}, immutable`),
   });
 
   await app.register(authRoutes);

@@ -57,7 +57,7 @@ test('photos are uploaded, re-encoded to WebP, and transparent ones become cut-o
     headers: { origin: ORIGIN, 'content-type': body.contentType }, payload: body.payload,
   });
   assert.equal(response.statusCode, 303);
-  const images = app.repos.pieces.get(ids.hoopsId).images;
+  const images = (await app.repos.pieces.get(ids.hoopsId)).images;
   assert.deepEqual(images.map((i) => i.role).sort(), ['cutout', 'photo']);
   const media = await app.inject({ url: `/media/${images[0].file_key}-480.webp` });
   assert.equal(media.statusCode, 200);
@@ -79,14 +79,14 @@ test('orders can be processed and exported, with formula injection neutralised',
   const order = orderBody({ items: [{ pieceId: ids.hoopsId, option: 'White', quantity: 1 }] });
   order.customer.name = '=HYPERLINK("http://evil")';
   await app.inject({ method: 'POST', url: '/api/orders', payload: order, remoteAddress: '10.1.1.1' });
-  const orderId = app.repos.orders.list()[0].id;
+  const orderId = (await app.repos.orders.list())[0].id;
 
   const detail = await page(`/admin/orders/${orderId}`);
   assert.match(detail.body, /wa\.me\/96170123456/);
   assert.match(detail.body, /google\.com\/maps/);
 
   await adminPost(app, session, `/admin/orders/${orderId}/status`, { status: 'confirmed' });
-  assert.equal(app.repos.orders.get(orderId).status, 'confirmed');
+  assert.equal((await app.repos.orders.get(orderId)).status, 'confirmed');
 
   const csv = await page('/admin/orders.csv');
   assert.match(csv.headers['content-type'], /text\/csv/);
@@ -98,8 +98,8 @@ test('team members get a one-time password and the last owner cannot be removed'
   assert.equal(created.statusCode, 200);
   assert.match(created.body, /shown only once/);
 
-  const ownerId = app.repos.users.findByEmail('owner@test.local').id;
-  const editorId = app.repos.users.findByEmail('editor@test.local').id;
+  const ownerId = (await app.repos.users.findByEmail('owner@test.local')).id;
+  const editorId = (await app.repos.users.findByEmail('editor@test.local')).id;
   await adminPost(app, session, `/admin/users/${editorId}/role`, { role: 'owner' });
   await adminPost(app, session, `/admin/users/${editorId}/role`, { role: 'editor' });
   const selfDelete = await adminPost(app, session, `/admin/users/${ownerId}/delete`);
@@ -107,12 +107,15 @@ test('team members get a one-time password and the last owner cannot be removed'
 });
 
 test('every change is written to the activity log', async () => {
-  const entries = app.repos.activity.list({ limit: 100 }).map((e) => e.action);
+  const entries = (await app.repos.activity.list({ limit: 100 })).map((e) => e.action);
   for (const action of ['piece.create', 'piece.photos', 'order.status', 'user.create']) assert.ok(entries.includes(action), action);
 });
 
-test('the database backup downloads', async () => {
+test('the backup downloads every table except login sessions', async () => {
   const response = await adminPost(app, session, '/admin/backup/database');
   assert.equal(response.statusCode, 200);
-  assert.equal(response.rawPayload.subarray(0, 15).toString(), 'SQLite format 3');
+  const backup = response.json();
+  assert.ok(backup.tables.orders.length > 0);
+  assert.ok(backup.tables.pieces.length > 0);
+  assert.equal(backup.tables.sessions, undefined);
 });

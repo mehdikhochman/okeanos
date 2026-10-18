@@ -70,7 +70,7 @@ export function lookbookPage({ ctx, photos }) {
     body: html`
       <p class="help">Photos of the pieces being worn. They scroll sideways on the home page, and the first one also appears as a tile in the shop grid.</p>
       ${photos.length ? html`<ul class="photo-grid large">${photos.map((photo) => html`<li class="${photo.is_visible ? '' : 'is-hidden'}">
-        <img src="${mediaUrl(photo.file_key, 480)}" alt="" loading="lazy">
+        <img src="${mediaUrl(photo, 480)}" alt="" loading="lazy">
         <form method="post" action="/admin/lookbook/${photo.id}" class="stack">
           ${csrfField(csrf)}
           <label class="visually-hidden" for="cap-${photo.id}">Caption</label>
@@ -88,6 +88,7 @@ export function lookbookPage({ ctx, photos }) {
         <label for="f-photos" class="label">Add photos</label>
         <input id="f-photos" name="photos" type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple required>
         <button class="button" type="submit">Upload</button>
+        <p class="help" data-upload-status role="status"></p>
       </form>`,
   });
 }

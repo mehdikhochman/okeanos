@@ -2,7 +2,7 @@
   "name": "okeanos-server",
   "version": "1.0.0",
   "private": true,
-  "description": "Storefront and admin for Okeanós jewellery",
+  "description": "Storefront and admin for Okean\u00f3s jewellery",
   "type": "module",
   "engines": {
     "node": ">=22.9"
@@ -13,7 +13,9 @@
     "seed": "node --env-file-if-exists=.env scripts/seed.js",
     "create-owner": "node --env-file-if-exists=.env scripts/create-owner.js",
     "bench": "node scripts/bench.js",
-    "test": "node --test --test-concurrency=1 test/*.test.js"
+    "test": "node --test --test-concurrency=1 test/*.test.js",
+    "setup": "node --env-file-if-exists=.env scripts/setup.js",
+    "vercel-build": "node scripts/setup.js"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.3",
@@ -21,7 +23,8 @@
     "@fastify/multipart": "^10.1.4",
     "@fastify/rate-limit": "^11.2.1",
     "@fastify/static": "^10.1.6",
-    "better-sqlite3": "^13.0.3",
+    "@libsql/client": "^0.18.0",
+    "@vercel/blob": "^2.8.2",
     "fastify": "^5.12.7",
     "sharp": "^0.35.5"
   }

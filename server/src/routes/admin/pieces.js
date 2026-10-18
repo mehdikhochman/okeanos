@@ -41,7 +41,7 @@ function readOptions(form) {
   return options;
 }
 
-function readPieceForm(body, repos) {
+async function readPieceForm(body, repos) {
   const form = new FormReader(body);
   const piece = {
     name: form.text('name', { label: 'Name', required: true, max: 80 }),
@@ -62,7 +62,7 @@ function readPieceForm(body, repos) {
     options: readOptions(form),
     collectionIds: form.idList('collection_ids'),
   };
-  if (piece.categoryId && !repos.categories.get(piece.categoryId)) form.fail('category_id', 'Choose a category.');
+  if (piece.categoryId && !(await repos.categories.get(piece.categoryId))) form.fail('category_id', 'Choose a category.');
   if (piece.options.length && !piece.optionLabel) form.fail('option_label', 'Give the choices a name, like "Colour".');
   return { piece, form };
 }
@@ -82,15 +82,15 @@ function asView(piece, existing = EMPTY_PIECE) {
 export async function pieceRoutes(app) {
   const { pieces, categories, collections } = app.repos;
 
-  function formPage(request, reply, { piece, errors, isNew, statusCode }) {
+  async function formPage(request, reply, { piece, errors, isNew, statusCode }) {
     return sendPage(reply, pieceFormPage({
-      ctx: pageContext(app, request), piece, errors, isNew,
-      categories: categories.list(), collections: collections.list(),
+      ctx: await pageContext(app, request), piece, errors, isNew,
+      categories: await categories.list(), collections: await collections.list(),
     }), statusCode);
   }
 
-  function loadPiece(id) {
-    const piece = pieces.get(parseId(id));
+  async function loadPiece(id) {
+    const piece = await pieces.get(parseId(id));
     if (!piece) throw notFound('Piece');
     return piece;
   }
@@ -102,52 +102,52 @@ export async function pieceRoutes(app) {
       categoryId: Number(request.query.category) || 0,
     };
     return sendPage(reply, piecesListPage({
-      ctx: pageContext(app, request), pieces: pieces.list(filters), categories: categories.list(),
-      filters, currency: app.repos.settings.getAll().currency,
+      ctx: await pageContext(app, request), pieces: await pieces.list(filters), categories: await categories.list(),
+      filters, currency: (await app.repos.settings.getAll()).currency,
     }));
   });
 
   app.get('/pieces/new', async (request, reply) =>
-    formPage(request, reply, { piece: { ...EMPTY_PIECE, category_id: categories.list()[0]?.id }, isNew: true }));
+    formPage(request, reply, { piece: { ...EMPTY_PIECE, category_id: (await categories.list())[0]?.id }, isNew: true }));
 
   app.post('/pieces', async (request, reply) => {
-    const { piece, form } = readPieceForm(request.body, app.repos);
+    const { piece, form } = await readPieceForm(request.body, app.repos);
     if (form.hasErrors) return formPage(request, reply, { piece: asView(piece), errors: form.errors, isNew: true, statusCode: 400 });
-    const id = pieces.create(piece);
-    recordChange(app, request, 'piece.create', `added the piece "${piece.name}"`);
+    const id = await pieces.create(piece);
+    await recordChange(app, request, 'piece.create', `added the piece "${piece.name}"`);
     return redirect(reply, `/admin/pieces/${id}`, 'created');
   });
 
-  app.get('/pieces/:id', async (request, reply) => formPage(request, reply, { piece: loadPiece(request.params.id) }));
+  app.get('/pieces/:id', async (request, reply) => formPage(request, reply, { piece: await loadPiece(request.params.id) }));
 
   app.post('/pieces/:id', async (request, reply) => {
-    const existing = loadPiece(request.params.id);
-    const { piece, form } = readPieceForm(request.body, app.repos);
+    const existing = await loadPiece(request.params.id);
+    const { piece, form } = await readPieceForm(request.body, app.repos);
     if (form.hasErrors) return formPage(request, reply, { piece: asView(piece, existing), errors: form.errors, statusCode: 400 });
-    pieces.update(existing.id, piece);
-    recordChange(app, request, 'piece.update', `edited "${piece.name}"`);
+    await pieces.update(existing.id, piece);
+    await recordChange(app, request, 'piece.update', `edited "${piece.name}"`);
     return redirect(reply, `/admin/pieces/${existing.id}`, 'saved');
   });
 
   app.post('/pieces/:id/move', async (request, reply) => {
-    const piece = loadPiece(request.params.id);
-    pieces.move(piece.id, parseDirection(request.body.direction ?? request.query.direction));
-    recordChange(app, request, 'piece.move', `moved "${piece.name}" in the shop order`);
+    const piece = await loadPiece(request.params.id);
+    await pieces.move(piece.id, parseDirection(request.body.direction ?? request.query.direction));
+    await recordChange(app, request, 'piece.move', `moved "${piece.name}" in the shop order`);
     return redirect(reply, '/admin/pieces', 'moved');
   });
 
   app.post('/pieces/:id/duplicate', async (request, reply) => {
-    const piece = loadPiece(request.params.id);
-    const copyId = pieces.duplicate(piece.id);
-    recordChange(app, request, 'piece.duplicate', `duplicated "${piece.name}"`);
+    const piece = await loadPiece(request.params.id);
+    const copyId = await pieces.duplicate(piece.id);
+    await recordChange(app, request, 'piece.duplicate', `duplicated "${piece.name}"`);
     return redirect(reply, `/admin/pieces/${copyId}`, 'created');
   });
 
   app.post('/pieces/:id/delete', async (request, reply) => {
-    const piece = loadPiece(request.params.id);
-    const result = pieces.remove(piece.id);
+    const piece = await loadPiece(request.params.id);
+    const result = await pieces.remove(piece.id);
     for (const imageId of result.imageIds) await deleteImageIfUnused(app, imageId);
-    recordChange(app, request, 'piece.delete', `${result.archived ? 'archived' : 'deleted'} "${piece.name}"`);
+    await recordChange(app, request, 'piece.delete', `${result.archived ? 'archived' : 'deleted'} "${piece.name}"`);
     return redirect(reply, '/admin/pieces', result.archived ? 'archived' : 'deleted');
   });
 
@@ -156,45 +156,45 @@ export async function pieceRoutes(app) {
     const status = BULK_ACTIONS[form.raw('action')];
     const ids = form.idList('ids');
     if (status && ids.length) {
-      pieces.setStatus(ids, status);
-      recordChange(app, request, 'piece.bulk', `set ${ids.length} pieces to ${status}`);
+      await pieces.setStatus(ids, status);
+      await recordChange(app, request, 'piece.bulk', `set ${ids.length} pieces to ${status}`);
     }
     return redirect(reply, '/admin/pieces', 'bulk');
   });
 
   app.post('/pieces/:id/images', async (request, reply) => {
-    const piece = loadPiece(request.params.id);
+    const piece = await loadPiece(request.params.id);
     const files = uploadedFiles(request);
     for (const file of files) {
       const image = await storeImage(app, file.value);
-      pieces.addImage(piece.id, image.id, image.has_alpha ? 'cutout' : 'photo', piece.name);
+      await pieces.addImage(piece.id, image.id, image.has_alpha ? 'cutout' : 'photo', piece.name);
     }
-    recordChange(app, request, 'piece.photos', `added ${files.length} photo(s) to "${piece.name}"`);
+    await recordChange(app, request, 'piece.photos', `added ${files.length} photo(s) to "${piece.name}"`);
     return redirect(reply, `/admin/pieces/${piece.id}`, 'uploaded');
   });
 
   app.post('/pieces/:id/images/:imageId', async (request, reply) => {
-    const piece = loadPiece(request.params.id);
+    const piece = await loadPiece(request.params.id);
     const form = new FormReader(request.body);
     const role = form.oneOf('role', ['cutout', 'photo'], { label: 'Type' }) ?? 'photo';
-    pieces.updateImage(piece.id, parseId(request.params.imageId), { role, alt: form.text('alt', { label: 'Description', max: 120 }) ?? '' });
-    recordChange(app, request, 'piece.photos', `edited a photo of "${piece.name}"`);
+    await pieces.updateImage(piece.id, parseId(request.params.imageId), { role, alt: form.text('alt', { label: 'Description', max: 120 }) ?? '' });
+    await recordChange(app, request, 'piece.photos', `edited a photo of "${piece.name}"`);
     return redirect(reply, `/admin/pieces/${piece.id}`, 'saved');
   });
 
   app.post('/pieces/:id/images/:imageId/move', async (request, reply) => {
-    const piece = loadPiece(request.params.id);
-    pieces.moveImage(piece.id, parseId(request.params.imageId), parseDirection(request.body.direction));
-    recordChange(app, request, 'piece.photos', `reordered photos of "${piece.name}"`);
+    const piece = await loadPiece(request.params.id);
+    await pieces.moveImage(piece.id, parseId(request.params.imageId), parseDirection(request.body.direction));
+    await recordChange(app, request, 'piece.photos', `reordered photos of "${piece.name}"`);
     return redirect(reply, `/admin/pieces/${piece.id}`, 'moved');
   });
 
   app.post('/pieces/:id/images/:imageId/delete', async (request, reply) => {
-    const piece = loadPiece(request.params.id);
+    const piece = await loadPiece(request.params.id);
     const imageId = parseId(request.params.imageId);
-    pieces.removeImage(piece.id, imageId);
+    await pieces.removeImage(piece.id, imageId);
     await deleteImageIfUnused(app, imageId);
-    recordChange(app, request, 'piece.photos', `removed a photo from "${piece.name}"`);
+    await recordChange(app, request, 'piece.photos', `removed a photo from "${piece.name}"`);
     return redirect(reply, `/admin/pieces/${piece.id}`, 'deleted');
   });
 

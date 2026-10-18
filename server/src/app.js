@@ -1,5 +1,6 @@
 // Assembles the application: database, repositories, plugins and routes.
-// Kept separate from server.js so tests can build an app without opening a port.
+// Kept separate from server.js (local) and api/index.js (Vercel) so both, and the tests,
+// build exactly the same app.
 import path from 'node:path';
 import Fastify from 'fastify';
 import fastifyCookie from '@fastify/cookie';
@@ -14,10 +15,13 @@ import { registerErrorHandling } from './plugins/errors.js';
 import { publicRoutes } from './routes/public.js';
 import { adminRoutes } from './routes/admin/index.js';
 
-const HOUR_MS = 60 * 60 * 1000;
-
-export async function buildApp({ dataDir = config.dataDir, databaseFile, logger = true } = {}) {
-  const db = openDatabase(databaseFile ?? path.join(dataDir, 'okeanos.db'));
+export async function buildApp({
+  dataDir = config.dataDir,
+  databaseUrl = config.databaseUrl,
+  mediaDriver = config.mediaDriver,
+  logger = true,
+} = {}) {
+  const db = await openDatabase({ url: databaseUrl, authToken: config.databaseToken, migrate: config.migrateOnStart });
   const repos = createRepositories(db);
 
   const app = Fastify({
@@ -32,7 +36,7 @@ export async function buildApp({ dataDir = config.dataDir, databaseFile, logger 
   });
 
   app.decorate('repos', repos);
-  app.decorate('media', createMediaStore(path.join(dataDir, 'media')));
+  app.decorate('media', createMediaStore({ driver: mediaDriver, mediaDir: path.join(dataDir, 'media') }));
   app.decorate('storefront', createStorefront({ repos }));
 
   await app.register(fastifyCookie);
@@ -43,12 +47,6 @@ export async function buildApp({ dataDir = config.dataDir, databaseFile, logger 
   await app.register(publicRoutes);
   await app.register(adminRoutes, { prefix: '/admin' });
 
-  const purgeTimer = setInterval(() => repos.sessions.purgeExpired(), HOUR_MS);
-  purgeTimer.unref();
-  app.addHook('onClose', async () => {
-    clearInterval(purgeTimer);
-    db.close();
-  });
-
+  app.addHook('onClose', async () => db.close());
   return app;
 }

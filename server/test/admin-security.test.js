@@ -41,7 +41,7 @@ test('the session cookie is HttpOnly, SameSite=Strict and scoped to /admin', asy
 test('the session id is stored only as a hash', async () => {
   const session = await login(app);
   const token = Object.values(session.cookies)[0];
-  const stored = app.repos.db.prepare('SELECT id_hash FROM sessions').pluck().all();
+  const stored = (await app.repos.db.all('SELECT id_hash FROM sessions')).map((row) => row.id_hash);
   assert.ok(!stored.includes(token));
 });
 

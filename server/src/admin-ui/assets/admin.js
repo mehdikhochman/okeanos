@@ -79,4 +79,51 @@
   }
 
   document.querySelector('[data-focus]')?.focus();
+
+  // Photo uploads: shrink each photo in the browser, then send them one at a time.
+  // Hosts like Vercel refuse requests over 4.5 MB, and phone photos are often bigger.
+  const MAX_SIDE_PX = 2400;
+  const SEND_AS_IS_BYTES = 2.5 * 1024 * 1024;
+
+  async function shrink(file) {
+    if (file.size <= SEND_AS_IS_BYTES || !window.createImageBitmap) return file;
+    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    const scale = Math.min(1, MAX_SIDE_PX / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    // WebP keeps transparency (cut-outs). Browsers that cannot write WebP return PNG instead.
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', 0.92));
+    const extension = blob.type === 'image/webp' ? 'webp' : 'png';
+    return new File([blob], file.name.replace(/\.\w+$/, '') + '.' + extension, { type: blob.type });
+  }
+
+  for (const form of document.querySelectorAll('form[data-upload]')) {
+    form.addEventListener('submit', async (event) => {
+      const input = form.querySelector('input[type="file"]');
+      if (!input.files.length || !window.fetch) return; // the browser sends the form normally
+      event.preventDefault();
+      const status = form.querySelector('[data-upload-status]');
+      const button = form.querySelector('button[type="submit"]');
+      const files = [...input.files];
+      button.disabled = true;
+      for (const [index, file] of files.entries()) {
+        status.textContent = `Uploading ${index + 1} of ${files.length}…`;
+        const data = new FormData();
+        data.set('_csrf', form.querySelector('input[name="_csrf"]').value);
+        data.set('photos', await shrink(file));
+        const response = await fetch(form.action, { method: 'POST', body: data });
+        if (!response.ok) {
+          status.textContent = response.status === 413
+            ? `"${file.name}" is too large, even after resizing.`
+            : `"${file.name}" could not be uploaded. Check it is a JPEG, PNG or WebP photo.`;
+          button.disabled = false;
+          button.removeAttribute('aria-busy');
+          return;
+        }
+      }
+      window.location.assign(`${window.location.pathname}?notice=uploaded`);
+    });
+  }
 })();

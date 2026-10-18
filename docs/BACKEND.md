@@ -3,18 +3,31 @@
 ## Shape
 
 ```
-Browser ──HTTPS──> Caddy ──> Node 22 + Fastify (one process)
-                                 ├── GET  /            storefront, served from memory
-                                 ├── GET  /media/*     photos (WebP, cached 1 year)
-                                 ├── POST /api/orders  checkout
-                                 └── /admin/*          admin (server-rendered HTML)
-                              SQLite file (WAL) + data/media/ folder
+Browser ──> Vercel CDN ──> api/index.js (Vercel function) ──> Fastify app (src/app.js)
+                │                                               ├── GET  /            storefront, cached in memory + 10 s at the edge
+                │                                               ├── POST /api/orders  checkout
+                │                                               └── /admin/*          admin (server-rendered HTML)
+                └── photos from Vercel Blob (CDN)         Turso (hosted SQLite)
 ```
 
-A jewellery shop with tens of pieces and a few orders a day does not need a separate
-database server, a queue or a front-end framework. Every extra moving part would add
-latency, cost and attack surface. If the shop ever outgrows SQLite, the repositories
-are the only files that talk to the database.
+The same app also runs as a normal Node process (`npm start`) with an SQLite file and a local
+photo folder. Development, the tests and any VPS use that mode. `src/config.js` picks the mode from
+the environment, and the code is identical.
+
+A jewellery shop with tens of pieces and a few orders a day does not need a database server of
+its own, a queue or a front-end framework. Turso keeps the SQLite dialect, so the SQL and the
+migrations are the same in both modes.
+
+### What Vercel changes, and how the code handles it
+
+| Vercel constraint | Handling |
+|---|---|
+| The disk is wiped between requests | Database on Turso, photos on Vercel Blob |
+| Several instances run at once | The cached shop page carries a `catalogue_version`; every admin change bumps it, and each instance rebuilds when its copy is older |
+| Request bodies over 4.5 MB are refused | The admin shrinks photos in the browser and uploads them one at a time |
+| No long-running process | Migrations and the first-time catalogue run at deploy (`npm run vercel-build`); expired sessions are purged at login instead of by a timer |
+| Rate limits are per instance | Order spam is also capped per IP per day in the database; login lockout is stored in the database |
+| A missing setting used to crash with a blank 500 | `api/index.js` answers with a plain sentence naming the missing settings (never their values) |
 
 ## Folders (`server/src`)
 
@@ -54,7 +67,7 @@ Online payment (for example Areeba or Stripe) can be added later as a step after
 | CSRF | Per-session token on every admin POST **and** an Origin check |
 | XSS | Auto-escaping templates; storefront CSP allows only its own inline script, by SHA-256 hash; admin CSP allows only same-origin scripts; option colours limited to `#rrggbb` |
 | SQL injection | Prepared statements only |
-| Malicious uploads | Upload parsing only after authentication; 15 MB limit; every file decoded and re-encoded by sharp (strips EXIF/GPS, rejects non-images); random content-hash names; media URLs restricted to that pattern |
+| Malicious uploads | Upload parsing only after authentication; size limit (4 MB on Vercel, 15 MB self-hosted); every file decoded and re-encoded by sharp (strips EXIF/GPS, rejects non-images); random content-hash names; media URLs restricted to that pattern |
 | Order spam | Strict schema, honeypot field, 5 orders per 10 min per IP, 10 per day per IP (stored as a keyed hash, not the raw IP) |
 | Spreadsheet formula injection | CSV cells starting with `= + - @` are prefixed with `'` |
 | Clickjacking, sniffing | `frame-ancestors 'none'`, `X-Frame-Options`, `nosniff`, strict referrer and permissions policies, HSTS in production |
@@ -68,8 +81,11 @@ Measured on the development container (`npm run bench`, 20 simultaneous visitors
 
 | Request | p50 | p95 |
 |---|---|---|
-| Shop page, first visit (Brotli, ~21 kB) | 22.6 ms | 37.7 ms |
+| Shop page, first visit (Brotli, ~21 kB, local mode) | 22.6 ms | 37.7 ms |
 | Shop page, returning visitor (304) | 4.4 ms | 8.9 ms |
+
+On Vercel most visitors get the page from the CDN edge (it caches it for 10 seconds), and the
+first request to a fresh instance includes a cold start (~1 s).
 
 Measured in a headless phone browser against the running server:
 
@@ -93,7 +109,8 @@ How:
 |---|---|
 | `fastify` | Fast HTTP server with built-in schema validation and logging |
 | `@fastify/cookie`, `formbody`, `multipart`, `static`, `rate-limit` | Official plugins for cookies, forms, uploads, files and rate limits; less security-critical code of our own |
-| `better-sqlite3` | Mature, synchronous, fast SQLite driver |
+| `@libsql/client` | One driver for a local SQLite file and for Turso |
+| `@vercel/blob` | Photo storage on Vercel |
 | `sharp` | Safe, fast image decoding and WebP encoding |
 
 ## Still to decide with the client

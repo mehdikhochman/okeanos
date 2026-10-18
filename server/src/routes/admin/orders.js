@@ -41,11 +41,11 @@ export async function orderRoutes(app) {
       q: String(request.query.q ?? '').trim().slice(0, 80),
     };
     const page = parsePage(request.query.page);
-    const total = orders.count(filters);
+    const total = await orders.count(filters);
     return sendPage(reply, ordersListPage({
-      ctx: pageContext(app, request),
-      orders: orders.list({ ...filters, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
-      counts: orders.countByStatus(),
+      ctx: await pageContext(app, request),
+      orders: await orders.list({ ...filters, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
+      counts: await orders.countByStatus(),
       filters,
       page,
       pageCount: Math.max(1, Math.ceil(total / PAGE_SIZE)),
@@ -53,10 +53,10 @@ export async function orderRoutes(app) {
   });
 
   app.get('/orders.csv', async (request, reply) => {
-    const rows = orders.exportAll().map(orderToCsvRow);
+    const rows = (await orders.exportAll()).map(orderToCsvRow);
     const csv = `﻿${[CSV_COLUMNS.map(csvCell).join(','), ...rows].join('\r\n')}\r\n`; // BOM so Excel reads UTF-8
     const date = new Date().toISOString().slice(0, 10);
-    logActivity(app, request, 'order.export', 'downloaded all orders as CSV');
+    await logActivity(app, request, 'order.export', 'downloaded all orders as CSV');
     return reply
       .type('text/csv; charset=utf-8')
       .header('content-disposition', `attachment; filename="okeanos-orders-${date}.csv"`)
@@ -64,35 +64,35 @@ export async function orderRoutes(app) {
   });
 
   app.get('/orders/:id', async (request, reply) => {
-    const order = orders.get(parseId(request.params.id));
+    const order = await orders.get(parseId(request.params.id));
     if (!order) throw notFound('Order');
-    return sendPage(reply, orderDetailPage({ ctx: pageContext(app, request), order, brandName: settings.getAll().brand_name }));
+    return sendPage(reply, orderDetailPage({ ctx: await pageContext(app, request), order, brandName: (await settings.getAll()).brand_name }));
   });
 
   app.post('/orders/:id', async (request, reply) => {
-    const order = orders.get(parseId(request.params.id));
+    const order = await orders.get(parseId(request.params.id));
     if (!order) throw notFound('Order');
     const status = readStatus(request.body.status) ?? order.status;
     const adminNote = String(request.body.admin_note ?? '').slice(0, 1000);
-    orders.update(order.id, { status, adminNote });
-    logActivity(app, request, 'order.update', `updated order ${order.number} (${ORDER_STATUS_LABELS[status]})`);
+    await orders.update(order.id, { status, adminNote });
+    await logActivity(app, request, 'order.update', `updated order ${order.number} (${ORDER_STATUS_LABELS[status]})`);
     return redirect(reply, `/admin/orders/${order.id}`, 'saved');
   });
 
   app.post('/orders/:id/status', async (request, reply) => {
-    const order = orders.get(parseId(request.params.id));
+    const order = await orders.get(parseId(request.params.id));
     if (!order) throw notFound('Order');
     const status = readStatus(request.body.status) ?? order.status;
-    orders.update(order.id, { status, adminNote: order.admin_note });
-    logActivity(app, request, 'order.status', `marked order ${order.number} as ${ORDER_STATUS_LABELS[status].toLowerCase()}`);
+    await orders.update(order.id, { status, adminNote: order.admin_note });
+    await logActivity(app, request, 'order.status', `marked order ${order.number} as ${ORDER_STATUS_LABELS[status].toLowerCase()}`);
     return redirect(reply, `/admin/orders/${order.id}`, 'saved');
   });
 
   app.post('/orders/:id/delete', { config: { role: 'owner' } }, async (request, reply) => {
-    const order = orders.get(parseId(request.params.id));
+    const order = await orders.get(parseId(request.params.id));
     if (!order) throw notFound('Order');
-    orders.remove(order.id);
-    logActivity(app, request, 'order.delete', `deleted order ${order.number}`);
+    await orders.remove(order.id);
+    await logActivity(app, request, 'order.delete', `deleted order ${order.number}`);
     return redirect(reply, '/admin/orders', 'deleted');
   });
 }

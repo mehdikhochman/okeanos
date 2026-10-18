@@ -14,7 +14,7 @@ test('a valid order is saved with prices from the database, not from the browser
   assert.equal(response.statusCode, 201);
   assert.match(response.json().number, /^OK-\d{4}$/);
 
-  const order = app.repos.orders.get(1);
+  const order = await app.repos.orders.get(1);
   assert.equal(order.customer_name, 'Lara Haddad');
   assert.equal(order.city, 'Beirut');
   assert.equal(order.latitude, 33.8959);
@@ -66,8 +66,8 @@ test('orders are rate limited per connection', async () => {
 });
 
 test('no orders are taken while the shop is paused', async () => {
-  app.repos.settings.setMany({ orders_open: '0' });
+  await app.repos.settings.setMany({ orders_open: '0' });
   const response = await place(orderBody({ items: [{ pieceId: ids.hoopsId, option: 'White', quantity: 1 }] }), '10.0.0.6');
   assert.equal(response.statusCode, 403);
-  app.repos.settings.setMany({ orders_open: '1' });
+  await app.repos.settings.setMany({ orders_open: '1' });
 });

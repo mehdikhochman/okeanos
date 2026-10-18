@@ -1,58 +1,93 @@
 // Stores uploaded images. Every upload is decoded and re-encoded by sharp, which
 // strips EXIF/GPS data and makes sure the file really is an image, then saved as
 // WebP in two widths under a content-hash name (so URLs can be cached forever).
+//
+// Two places to keep the files:
+//   local - the DATA_DIR/media folder, served by this app at /media (development, VPS)
+//   blob  - Vercel Blob, served from Vercel's CDN (Vercel deployments, whose disk is temporary)
 import fs from 'node:fs/promises';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
+import { put, del } from '@vercel/blob';
 import { sha256 } from './crypto.js';
 import { badRequest } from './http-error.js';
 
 export const IMAGE_WIDTHS = [480, 1200];
 export const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif'];
+export const LOCAL_BASE_URL = '/media';
 const MAX_INPUT_PIXELS = 50_000_000;
 const FILE_KEY_LENGTH = 20;
+const fileName = (fileKey, width) => `${fileKey}-${width}.webp`;
 
-export function createMediaStore(mediaDir) {
-  mkdirSync(mediaDir, { recursive: true });
+export function mediaUrl(image, width) {
+  return `${image.base_url ?? LOCAL_BASE_URL}/${fileName(image.file_key, width)}`;
+}
 
-  const fileFor = (fileKey, width) => path.join(mediaDir, `${fileKey}-${width}.webp`);
-
-  async function readMetadata(buffer) {
-    try {
-      const input = sharp(buffer, { limitInputPixels: MAX_INPUT_PIXELS, failOn: 'error' });
-      const [metadata, stats] = await Promise.all([input.metadata(), input.stats()]);
-      return { metadata, isOpaque: stats.isOpaque };
-    } catch {
-      throw badRequest('This file could not be read as an image. Use a JPEG, PNG or WebP photo.');
-    }
+async function encode(buffer) {
+  let metadata;
+  let isOpaque;
+  try {
+    const input = sharp(buffer, { limitInputPixels: MAX_INPUT_PIXELS, failOn: 'error' });
+    [metadata, { isOpaque }] = await Promise.all([input.metadata(), input.stats()]);
+  } catch {
+    throw badRequest('This file could not be read as an image. Use a JPEG, PNG or WebP photo.');
   }
+  const versions = await Promise.all(IMAGE_WIDTHS.map(async (width) => {
+    const { data, info } = await sharp(buffer, { limitInputPixels: MAX_INPUT_PIXELS })
+      .rotate() // apply the phone's orientation flag before it is stripped
+      .resize({ width, withoutEnlargement: true })
+      .webp({ quality: 80, alphaQuality: 90, effort: 4 })
+      .toBuffer({ resolveWithObject: true });
+    return { width, data, info };
+  }));
+  const largest = versions.at(-1).info;
+  return {
+    fileKey: sha256(buffer).slice(0, FILE_KEY_LENGTH),
+    width: largest.width ?? metadata.width,
+    height: largest.height ?? metadata.height,
+    hasAlpha: !isOpaque,
+    versions,
+  };
+}
 
+function localStore(mediaDir) {
+  mkdirSync(mediaDir, { recursive: true });
   return {
     dir: mediaDir,
-
     async save(buffer) {
-      const { metadata, isOpaque } = await readMetadata(buffer);
-      const fileKey = sha256(buffer).slice(0, FILE_KEY_LENGTH);
-      let largest = { width: metadata.width, height: metadata.height };
-
-      for (const width of IMAGE_WIDTHS) {
-        const info = await sharp(buffer, { limitInputPixels: MAX_INPUT_PIXELS })
-          .rotate() // apply the phone's orientation flag before it is stripped
-          .resize({ width, withoutEnlargement: true })
-          .webp({ quality: 80, alphaQuality: 90, effort: 4 })
-          .toFile(fileFor(fileKey, width));
-        largest = { width: info.width, height: info.height };
-      }
-      return { fileKey, ...largest, hasAlpha: !isOpaque };
+      const { versions, ...image } = await encode(buffer);
+      await Promise.all(versions.map((v) => fs.writeFile(path.join(mediaDir, fileName(image.fileKey, v.width)), v.data)));
+      return { ...image, baseUrl: LOCAL_BASE_URL };
     },
-
-    async remove(fileKey) {
-      await Promise.all(IMAGE_WIDTHS.map((width) => fs.rm(fileFor(fileKey, width), { force: true })));
+    async remove(image) {
+      await Promise.all(IMAGE_WIDTHS.map((width) => fs.rm(path.join(mediaDir, fileName(image.file_key, width)), { force: true })));
     },
   };
 }
 
-export function mediaUrl(fileKey, width) {
-  return `/media/${fileKey}-${width}.webp`;
+// put() reads BLOB_READ_WRITE_TOKEN from the environment.
+function blobStore() {
+  return {
+    dir: null,
+    async save(buffer) {
+      const { versions, ...image } = await encode(buffer);
+      const uploads = await Promise.all(versions.map((v) => put(`media/${fileName(image.fileKey, v.width)}`, v.data, {
+        access: 'public',
+        contentType: 'image/webp',
+        addRandomSuffix: false, // the name is already a content hash
+        allowOverwrite: true,
+        cacheControlMaxAge: 365 * 24 * 60 * 60,
+      })));
+      const baseUrl = uploads[0].url.slice(0, uploads[0].url.lastIndexOf('/'));
+      return { ...image, baseUrl };
+    },
+    async remove(image) {
+      await del(IMAGE_WIDTHS.map((width) => mediaUrl(image, width)));
+    },
+  };
+}
+
+export function createMediaStore({ driver, mediaDir }) {
+  return driver === 'blob' ? blobStore() : localStore(mediaDir);
 }

@@ -2,10 +2,10 @@
 import { badRequest, notFound } from '../../lib/http-error.js';
 import { ACCEPTED_IMAGE_TYPES } from '../../lib/media.js';
 
-export function pageContext(app, request) {
+export async function pageContext(app, request) {
   return {
     admin: request.admin,
-    newOrders: app.repos.orders.count({ status: 'new' }),
+    newOrders: await app.repos.orders.count({ status: 'new' }),
     notice: typeof request.query?.notice === 'string' ? request.query.notice : '',
   };
 }
@@ -36,13 +36,12 @@ export function parsePage(value) {
 }
 
 export function logActivity(app, request, action, summary) {
-  app.repos.activity.log(request.admin.user_id, action, summary);
+  return app.repos.activity.log(request.admin.user_id, action, summary);
 }
 
 // For changes that customers can see: logged, and the cached storefront is rebuilt.
-export function recordChange(app, request, action, summary) {
-  logActivity(app, request, action, summary);
-  app.storefront.invalidate();
+export async function recordChange(app, request, action, summary) {
+  await Promise.all([logActivity(app, request, action, summary), app.storefront.invalidate()]);
 }
 
 // Uploaded files arrive (already size-limited) on request.body.photos, as one part or a list.
@@ -61,6 +60,6 @@ export async function storeImage(app, buffer) {
 }
 
 export async function deleteImageIfUnused(app, imageId) {
-  const fileKey = app.repos.images.removeIfUnused(imageId);
-  if (fileKey) await app.media.remove(fileKey);
+  const image = await app.repos.images.removeIfUnused(imageId);
+  if (image) await app.media.remove(image);
 }
