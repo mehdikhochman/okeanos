@@ -1,0 +1,28 @@
+-- The shop's style has no commas. Rewrites the starter texts that still read as first loaded;
+-- anything the team has already edited in the admin is left as it is.
+
+UPDATE settings SET value = 'Every piece is made to order. Order online and we deliver to your door.' WHERE key = 'announcement' AND value = 'Every piece is made to order. Order online, we deliver to your door.';
+UPDATE settings SET value = 'Pieces in 18k gold-plated stainless steel. Each one is made when you order it.' WHERE key = 'shop_intro' AND value = 'Pieces in 18k gold-plated stainless steel, each one made when you order it.';
+UPDATE settings SET value = 'Made-to-order pieces can''t be returned or exchanged. If the size doesn''t fit just give the piece back and we will fix the size for free.' WHERE key = 'policy_returns' AND value = 'Made-to-order pieces can''t be returned or exchanged. If the size doesn''t fit, give the piece back and we will fix the size for free.';
+UPDATE settings SET value = 'Put on perfume and lotion first. Take the piece off before showering or swimming and before sport or sleep.' WHERE key = 'policy_care' AND value = 'Put on perfume and lotion first, and take the piece off before showering, swimming, sport and sleep.';
+UPDATE settings SET value = 'Every piece is designed and made by Ōkeanós in stainless steel plated in 18k gold once you order it.' WHERE key = 'about_1_text' AND value = 'Every piece is designed and made by Ōkeanós in stainless steel plated in 18k gold, once you order it.';
+UPDATE settings SET value = 'Ōkeanós designs and sells from Beirut in Lebanon. New pieces arrive in small drops announced on Instagram.' WHERE key = 'about_2_text' AND value = 'Ōkeanós designs and sells from Beirut, Lebanon. New pieces arrive in small drops, announced on Instagram.';
+UPDATE settings SET value = 'Order on the site and we bring your pieces to your door.' WHERE key = 'about_3_text' AND value = 'Order on the site, and we bring your pieces to your door.';
+UPDATE settings SET value = 'Ōkeanós · Gold-plated jewellery from Beirut' WHERE key = 'seo_title' AND value = 'Ōkeanós, gold-plated jewellery from Beirut';
+UPDATE settings SET value = 'Earrings · rings · bangles and hand chains in 18k gold-plated stainless steel made to order in Beirut.' WHERE key = 'seo_description' AND value = 'Earrings, rings, bangles and hand chains in 18k gold-plated stainless steel, made to order in Beirut.';
+UPDATE pieces SET name = 'Organic wrap ring', slug = 'organic-wrap-ring' WHERE name = 'Organic ring, wrap' AND slug = 'organic-ring-wrap' AND NOT EXISTS (SELECT 1 FROM pieces WHERE slug = 'organic-wrap-ring');
+UPDATE piece_images SET alt = 'Organic wrap ring' WHERE alt = 'Organic ring, wrap';
+UPDATE pieces SET name = 'Organic double band ring', slug = 'organic-double-band-ring' WHERE name = 'Organic ring, double band' AND slug = 'organic-ring-double-band' AND NOT EXISTS (SELECT 1 FROM pieces WHERE slug = 'organic-double-band-ring');
+UPDATE piece_images SET alt = 'Organic double band ring' WHERE alt = 'Organic ring, double band';
+UPDATE pieces SET description = 'Small hoops packed with irregular beads. Wear one colour or split a pair with a friend.' WHERE description = 'Small hoops packed with irregular beads. Wear one colour, or split a pair with a friend.';
+UPDATE pieces SET description = 'Puffy high-shine teardrop hoops on post backs.' WHERE description = 'Puffy, high-shine teardrop hoops on post backs.';
+UPDATE pieces SET description = 'Five-petal studs in mint enamel edged and centred in gold.' WHERE description = 'Five-petal studs in mint enamel, edged and centred in gold.';
+UPDATE pieces SET description = 'Large sculpted leaf studs in polished gold. Working name to be confirmed.' WHERE description = 'Large sculpted leaf studs in polished gold. Working name, to be confirmed.';
+UPDATE pieces SET description = 'Thin stacking rings including a zigzag band and a dotted band.' WHERE description = 'Thin stacking rings, including a zigzag band and a dotted band.';
+UPDATE pieces SET description = 'A fine chain set with small beads at even intervals. Working name to be confirmed.' WHERE description = 'A fine chain set with small beads at even intervals. Working name, to be confirmed.';
+UPDATE lookbook_photos SET caption = 'Hand chain with dome ring and bangles' WHERE caption = 'Hand chain, dome ring and bangles';
+UPDATE lookbook_photos SET caption = 'Loop Bangle stacked' WHERE caption = 'Loop Bangle, stacked';
+UPDATE lookbook_photos SET caption = 'Summer hoops split between friends' WHERE caption = 'Summer hoops, split between friends';
+UPDATE guide_entries SET answer = 'Don''t wear your pieces day and night. Constant wear shortens their life.' || char(10) || 'Put on perfume and lotion before your jewellery and not after.' || char(10) || 'Take your jewellery off before showering or swimming and before sport or sleep. That way it stays as it was the day you received it.' WHERE answer = 'Don''t wear your pieces day and night. Constant wear shortens their life.' || char(10) || 'Put on perfume and lotion before your jewellery, not after.' || char(10) || 'Take your jewellery off before showering, swimming, sport and sleep. That way it stays as it was the day you received it.';
+UPDATE guide_entries SET answer = 'No. Every piece is made when you order it so orders can''t be returned or exchanged.' || char(10) || 'If a piece doesn''t fit just give it back to us and we will fix the size for free.' WHERE answer = 'No. Every piece is made when you order it, so orders can''t be returned or exchanged.' || char(10) || 'If a piece doesn''t fit, give it back to us and we will fix the size for free.';
+UPDATE settings SET value = CAST(value AS INTEGER) + 1 WHERE key = 'catalogue_version';

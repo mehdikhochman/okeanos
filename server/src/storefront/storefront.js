@@ -25,7 +25,8 @@
   const money = new Intl.NumberFormat('en', {
     style: 'currency', currency: settings.currency, maximumFractionDigits: settings.currency === 'LBP' ? 0 : 2,
   });
-  const formatPrice = (cents) => (cents == null ? 'Price on request' : money.format(cents / 100));
+  // Thousands split by a thin space, never a comma (same as the admin).
+  const formatPrice = (cents) => (cents == null ? 'Price on request' : money.format(cents / 100).replace(/,/g, ' '));
   const imgTag = (img, sizes, extra = '') => img
     ? `<img src="${img.l}" srcset="${img.s} 480w, ${img.l} 1200w" sizes="${sizes}" width="${img.w}" height="${img.h}" alt="" ${extra}>`
     : '';
@@ -61,7 +62,7 @@
       : '';
     const quickLabel = p.options.length ? `Choose ${esc(p.optionLabel.toLowerCase() || 'option')}` : 'Add to bag';
     card.innerHTML = `<div class="tile-wrap">
-        <button class="tile" type="button" aria-label="${esc(p.name)}, open details">${badge}${art}${alt ? imgTag(alt, sizes, 'class="alt" loading="lazy"') : ''}</button>
+        <button class="tile" type="button" aria-label="${esc(p.name)} (open details)">${badge}${art}${alt ? imgTag(alt, sizes, 'class="alt" loading="lazy"') : ''}</button>
         ${p.soldOut ? '' : `<button class="quick" type="button">${quickLabel}</button>`}
       </div>
       <div class="meta"><h3><button type="button">${esc(p.name)}</button></h3><p>${esc(p.type)}</p><p class="price">${formatPrice(p.price)}</p>${swatches}</div>`;
@@ -199,7 +200,7 @@
     const hits = pieces.filter((p) => !term || `${p.name} ${p.type} ${p.desc}`.toLowerCase().includes(term));
     $('#results').innerHTML = hits.length
       ? hits.map((p) => `<li><button type="button" data-id="${p.id}"><img src="${thumb(p)?.s ?? ''}" alt=""><span><b>${esc(p.name)}</b><span>${esc(p.type)}</span></span></button></li>`).join('')
-      : `<li class="empty">No pieces match “${esc(q.value)}”. Try earrings, rings or hoops.</li>`;
+      : `<li class="empty">No pieces match “${esc(q.value)}”. Try earrings or rings.</li>`;
   }
   q.addEventListener('input', search);
   $('#results').addEventListener('click', (e) => {
@@ -229,7 +230,7 @@
     const images = (p.cut ? [{ ...p.cut, cut: true }] : []).concat(p.photos);
     const slides = $('#pSlides');
     slides.innerHTML = images.map((img, i) =>
-      `<div class="slide"><img src="${img.l}" width="${img.w}" height="${img.h}" alt="${esc(p.name)}, photo ${i + 1} of ${images.length}" class="${img.cut ? 'cut' : ''}" ${i ? 'loading="lazy"' : ''}></div>`).join('');
+      `<div class="slide"><img src="${img.l}" width="${img.w}" height="${img.h}" alt="${esc(p.name)} (photo ${i + 1} of ${images.length})" class="${img.cut ? 'cut' : ''}" ${i ? 'loading="lazy"' : ''}></div>`).join('');
     slides.scrollLeft = 0;
     const dots = $('#pDots');
     dots.innerHTML = images.length > 1 ? images.map((_, i) => `<button type="button" aria-label="Show photo ${i + 1}" aria-current="${i === 0}"></button>`).join('') : '';
@@ -302,7 +303,7 @@
     const count = $('#bagCount');
     count.textContent = n;
     count.hidden = !n;
-    $('#bagBtn').setAttribute('aria-label', `Open bag, ${plural(n, 'piece')}`);
+    $('#bagBtn').setAttribute('aria-label', `Open bag (${plural(n, 'piece')})`);
     const list = $('#bagList');
     list.replaceChildren();
     bag.forEach((l, i) => {
@@ -402,7 +403,7 @@
     $('#doneNumber').textContent = `Order ${result.number}`;
     $('#doneSummary').innerHTML = summaryHtml();
     const wa = $('#doneWhatsApp');
-    if (wa) wa.href = `https://wa.me/${settings.whatsapp}?text=${encodeURIComponent(`Hello, I just placed order ${result.number} on the website.`)}`;
+    if (wa) wa.href = `https://wa.me/${settings.whatsapp}?text=${encodeURIComponent(`Hello! I just placed order ${result.number} on the website.`)}`;
     bag = [];
     saveBag();
     idempotencyKey = null;

@@ -235,8 +235,9 @@ svg.i { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-widt
   background: var(--tile); cursor: pointer; overflow: hidden;
 }
 .tile .art { position: absolute; inset: 14% 12%; display: grid; place-items: center; }
+/* The photo fills the art box and is scaled down to fit it, whatever its own shape */
 .tile .art img {
-  max-height: 100%; width: auto; object-fit: contain;
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
   filter: drop-shadow(var(--sx, 6px) var(--sy, 10px) var(--sb, 12px) var(--shadow-ink));
 }
 /* Warm glint where the wall's light falls on the gold, masked to the piece itself */
@@ -411,8 +412,9 @@ details.acc[open] summary svg { transform: rotate(180deg); }
   margin-inline: -20px; background: var(--tile);
 }
 .slides::-webkit-scrollbar { display: none; }
-.slide { flex: 0 0 100%; scroll-snap-align: center; aspect-ratio: 1; display: grid; place-items: center; position: relative; }
-.slide img { width: 100%; height: 100%; object-fit: cover; }
+.slide { flex: 0 0 100%; scroll-snap-align: center; aspect-ratio: 4 / 5; display: grid; place-items: center; position: relative; }
+/* Whole photo always visible: never cropped, whatever its shape */
+.slide img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .slide img.cut { object-fit: contain; padding: 14%; filter: drop-shadow(6px 10px 12px var(--shadow-ink)); }
 .slides-wrap { position: relative; }
 .slides-wrap .badge { left: -8px; }
@@ -509,10 +511,10 @@ legend b { color: var(--abyss); font-weight: 500; }
         <div class="bar-left">
           <button class="icon-btn menu-btn" type="button" id="menuBtn" aria-label="Open menu" aria-haspopup="dialog"><svg class="i"><use href="#i-menu"/></svg></button>
         </div>
-        <a class="bar-mark" href="#top" aria-label="{{brand_name}}, back to top">{{brand_wordmark}}</a>
+        <a class="bar-mark" href="#top" aria-label="{{brand_name}} (back to top)">{{brand_wordmark}}</a>
         <div class="bar-right">
           <button class="icon-btn" type="button" id="searchBtn" aria-label="Search pieces" aria-haspopup="dialog"><svg class="i"><use href="#i-search"/></svg></button>
-          <button class="icon-btn" type="button" id="bagBtn" aria-label="Open bag, 0 pieces" aria-haspopup="dialog"><svg class="i"><use href="#i-bag"/></svg><span class="count" id="bagCount" hidden>0</span></button>
+          <button class="icon-btn" type="button" id="bagBtn" aria-label="Open bag (0 pieces)" aria-haspopup="dialog"><svg class="i"><use href="#i-bag"/></svg><span class="count" id="bagCount" hidden>0</span></button>
         </div>
       </div>
       <nav class="bar-nav" aria-label="Shop">
@@ -550,9 +552,9 @@ legend b { color: var(--abyss); font-weight: 500; }
             <select id="sort">
               <option value="featured">Featured</option>
               <option value="newest">Newest</option>
-              <option value="az">Name, A to Z</option>
-              <option value="price-asc">Price, low to high</option>
-              <option value="price-desc">Price, high to low</option>
+              <option value="az">Name: A to Z</option>
+              <option value="price-asc">Price: low to high</option>
+              <option value="price-desc">Price: high to low</option>
             </select>
             <svg class="i"><use href="#i-down"/></svg>
           </label>
@@ -570,14 +572,14 @@ legend b { color: var(--abyss); font-weight: 500; }
           <p>Pieces worn on the Lebanese coast.</p>
         </div>
       </div>
-      <div class="look-wrap"><div class="look" id="look" tabindex="0" aria-label="Lookbook photos, scroll sideways"></div></div>
+      <div class="look-wrap"><div class="look" id="look" tabindex="0" aria-label="Lookbook photos (scroll sideways)"></div></div>
     </section>
 
     <section class="sec" id="about" aria-labelledby="about-h">
       <div class="wrap">
         <div class="sec-head">
           <h2 id="about-h">About {{brand_name}}</h2>
-          <p>Named after the Titan of the world-ocean, the river that circles the earth.</p>
+          <p>Named after the Titan of the world-ocean: the river that circles the earth.</p>
         </div>
         <div class="about">{{{about_blocks}}}</div>
       </div>
@@ -599,7 +601,7 @@ legend b { color: var(--abyss); font-weight: 500; }
           <ul>
             <li><a href="#lookbook">Lookbook</a></li>
             <li><a href="#about">About</a></li>
-            <li><a href="#guide">Care, sizing and returns</a></li>
+            <li><a href="#guide">Care · sizing · returns</a></li>
           </ul>
         </div>
         <div>
@@ -621,7 +623,7 @@ legend b { color: var(--abyss); font-weight: 500; }
       <div class="menu-extra">
         <a href="#lookbook" data-close-nav>Lookbook</a>
         <a href="#about" data-close-nav>About {{brand_name}}</a>
-        <a href="#guide" data-close-nav>Care, sizing and returns</a>
+        <a href="#guide" data-close-nav>Care · sizing · returns</a>
       </div>
     </div>
   </div>
@@ -643,7 +645,7 @@ legend b { color: var(--abyss); font-weight: 500; }
 <dialog class="drawer top" id="searchD" aria-label="Search pieces">
   <div class="search-row">
     <label for="q" class="sr">Search pieces</label>
-    <input id="q" type="search" placeholder="Search earrings, rings, hoops…" autocomplete="off">
+    <input id="q" type="search" placeholder="Search earrings or rings…" autocomplete="off">
     <button class="icon-btn" type="button" data-close aria-label="Close search"><svg class="i"><use href="#i-close"/></svg></button>
   </div>
   <ul class="results" id="results"></ul>
@@ -656,14 +658,14 @@ legend b { color: var(--abyss); font-weight: 500; }
     <div class="d-body">
       <div class="slides-wrap">
         <span class="badge" id="pBadge" hidden></span>
-        <div class="slides" id="pSlides" tabindex="0" aria-label="Photos, swipe sideways"></div>
+        <div class="slides" id="pSlides" tabindex="0" aria-label="Photos (swipe sideways)"></div>
         <div class="dots" id="pDots"></div>
       </div>
       <div class="p-title"><h3 id="pName"></h3><span class="price" id="pPrice"></span></div>
       <p class="p-desc" id="pDesc"></p>
       <fieldset id="pOpts" hidden><legend id="pOptsLabel"></legend><div class="opts" id="pOptsList"></div></fieldset>
       <div class="facts">
-        <div><svg class="i"><use href="#i-gem"/></svg><span>Made to order, free resizing</span></div>
+        <div><svg class="i"><use href="#i-gem"/></svg><span>Made to order · free resizing</span></div>
         <div><svg class="i"><use href="#i-truck"/></svg><span>{{delivery_areas}}</span></div>
       </div>
       <div>
@@ -722,14 +724,14 @@ legend b { color: var(--abyss); font-weight: 500; }
         <input id="cCity" name="city" autocomplete="address-level2" required minlength="2" maxlength="60" list="cities"></div>
       <datalist id="cities">{{{city_options}}}</datalist>
       <div class="field"><label for="cAddress">Address</label>
-        <textarea id="cAddress" name="address" autocomplete="street-address" required minlength="5" maxlength="300" placeholder="Area, street, building, floor"></textarea></div>
+        <textarea id="cAddress" name="address" autocomplete="street-address" required minlength="5" maxlength="300" placeholder="Area · street · building · floor"></textarea></div>
       <div class="field"><span class="label-like">Location <span class="opt">(optional)</span></span>
         <div class="loc">
           <button class="ghost" type="button" id="useLocation"><svg class="i"><use href="#i-pin"/></svg>&nbsp;Use my current location</button>
           <span class="hint-text" id="locStatus" role="status">Helps the driver find you.</span>
         </div></div>
       <div class="field"><label for="cNote">Note for us <span class="opt">(optional)</span></label>
-        <textarea id="cNote" name="note" maxlength="500" placeholder="Ring size, gift message, best time to call"></textarea></div>
+        <textarea id="cNote" name="note" maxlength="500" placeholder="Ring size · gift message · best time to call"></textarea></div>
       <div class="trap" aria-hidden="true"><label for="cWebsite">Leave this empty</label><input id="cWebsite" name="website" tabindex="-1" autocomplete="off"></div>
       <div class="summary" id="checkoutSummary"></div>
       <p class="note">{{payment_note}}</p>

@@ -66,7 +66,7 @@ into `.env` (`vercel env pull .env` does this).
 ## Checks
 
 ```bash
-npm test        # 35 tests: security rules, ordering, storefront, admin, serverless behaviour
+npm test        # 46 tests: security rules, ordering, storefront, admin, serverless behaviour
 npm run bench   # response times of the shop page (server must be running)
 ```
 

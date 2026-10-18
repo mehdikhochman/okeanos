@@ -1,10 +1,11 @@
 // Display helpers shared by admin views and exports.
 
+// "$1 250.50": thousands are split by a thin space, never a comma (the shop's style).
 export function formatMoney(cents, currency = 'USD') {
   if (cents === null || cents === undefined) return '—';
   return new Intl.NumberFormat('en', {
     style: 'currency', currency, maximumFractionDigits: currency === 'LBP' ? 0 : 2,
-  }).format(cents / 100);
+  }).format(cents / 100).replace(/,/g, ' ');
 }
 
 // "48.5" for a form input, from 4850 cents.

@@ -81,10 +81,11 @@ function contentSecurityPolicy(document) {
 }
 
 // {{name}} inserts an escaped value; {{{name}}} inserts HTML we built ourselves.
+// A list of HTML pieces is joined with nothing between them (String() would put commas).
 function fillTemplate(template, values) {
   return template.replace(/\{\{(\{?)(\w+)\}?\}\}/g, (match, isRaw, key) => {
     if (!(key in values)) throw new Error(`Storefront template uses unknown value "${key}"`);
-    return isRaw ? String(values[key]) : escapeHtml(values[key]);
+    return isRaw ? [values[key]].flat().join('') : escapeHtml(values[key]);
   });
 }
 
@@ -169,7 +170,7 @@ function guideSection(entries) {
   return html`
     <section class="sec" id="guide" aria-labelledby="guide-h">
       <div class="wrap">
-        <div class="sec-head"><h2 id="guide-h">Guide</h2><p>Care, sizing and returns.</p></div>
+        <div class="sec-head"><h2 id="guide-h">Guide</h2><p>Care · sizing · returns</p></div>
         <div class="guide">${entries.map((entry, index) => html`
           <details class="acc" ${index === 0 ? 'open' : ''}>
             <summary>${entry.question} <svg class="i"><use href="#i-down"/></svg></summary>
@@ -187,6 +188,6 @@ function contactLinks(settings) {
     links.push(html`<li><a href="https://www.instagram.com/${settings.instagram_handle}/" target="_blank" rel="noopener">@${settings.instagram_handle} on Instagram</a></li>`);
   }
   if (settings.contact_email) links.push(html`<li><a href="mailto:${settings.contact_email}">${settings.contact_email}</a></li>`);
-  links.push(html`<li>Beirut, Lebanon</li>`);
+  links.push(html`<li>Beirut · Lebanon</li>`);
   return links;
 }
