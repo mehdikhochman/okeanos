@@ -20,19 +20,22 @@ two Vercel-connected services. Set them up once:
 1. **Project settings → General**
    - Root Directory: `server`
    - Framework Preset: Other
-   - Keep "Include files outside the root directory" on: the first deploy loads the starting photos from `../assets` and `../prototype`.
 2. **Storage → Create Database → Turso** → connect it to this project.
    This adds `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`.
    If your integration names them differently, add them under these names.
 3. **Storage → Create → Blob** → connect it to this project. This adds `BLOB_READ_WRITE_TOKEN`.
-4. **Settings → Environment Variables**, add:
+4. **Settings → Environment Variables**, add for **Production and Preview**:
    - `OWNER_EMAIL`: your email, for the first admin account
    - `OWNER_PASSWORD`: at least 12 characters
+
+   A branch other than `main` deploys as a *Preview*, so variables set for Production only are
+   not visible there.
    - `OWNER_NAME` (optional)
    - `PUBLIC_ORIGIN`: only if you use a custom domain, e.g. `https://okeanos.com`
 5. **Redeploy.** The build runs `npm run vercel-build` (`scripts/setup.js`), which:
    - creates or updates the tables;
-   - loads the 11 Instagram pieces, photos, lookbook and guide (first deploy only);
+   - loads the 11 Instagram pieces, photos, lookbook and guide from `server/seed/` (once; an
+     interrupted import finishes on the next deploy, and pieces you delete later never come back);
    - creates your owner account.
 
    The build log shows each step as a `[setup]` line.

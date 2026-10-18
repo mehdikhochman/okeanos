@@ -18,11 +18,16 @@ export const sessionCookieOptions = {
   maxAge: 7 * 24 * 60 * 60, // seconds; the server enforces the real limits
 };
 
+// The form must come from this site: either the configured address, or the address the visitor
+// is on right now (Vercel serves the same deployment under several names, like the
+// project-name.vercel.app alias and per-deployment URLs). A browser always sends the real Origin,
+// and another site cannot make it look like ours.
 export function isSameOrigin(request) {
+  const allowed = new Set([config.publicOrigin, `${request.protocol}://${request.host}`]);
   const origin = request.headers.origin;
-  if (origin) return origin === config.publicOrigin;
+  if (origin) return allowed.has(origin);
   const referer = request.headers.referer;
-  if (referer) return referer.startsWith(`${config.publicOrigin}/`);
+  if (referer) return [...allowed].some((site) => referer.startsWith(`${site}/`));
   // Modern browsers always send Origin on POST. Missing both is only tolerated outside production
   // so command-line tools and tests can talk to a local server.
   return !config.isProduction;

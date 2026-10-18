@@ -1,5 +1,9 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { buildApp } from '../src/app.js';
 import { buildTestApp, login, adminPost, ORIGIN, EDITOR } from './helpers.js';
 
 let app;
@@ -85,4 +89,31 @@ test('logging out ends the session', async () => {
   await adminPost(app, session, '/admin/logout');
   const response = await app.inject({ url: '/admin', cookies: session.cookies });
   assert.equal(response.statusCode, 302);
+});
+
+test('a form sent from the address the visitor is on is accepted (Vercel serves several addresses)', async () => {
+  const response = await app.inject({
+    method: 'POST', url: '/admin/login', remoteAddress: '10.9.9.1',
+    headers: { host: 'okeanos-server-git-preview.vercel.app', origin: 'http://okeanos-server-git-preview.vercel.app' },
+    payload: { email: 'owner@test.local', password: 'owner-password-123' },
+  });
+  assert.equal(response.statusCode, 303);
+  const forged = await app.inject({
+    method: 'POST', url: '/admin/login', remoteAddress: '10.9.9.2',
+    headers: { host: 'okeanos-server-git-preview.vercel.app', origin: 'https://evil.example' },
+    payload: { email: 'owner@test.local', password: 'owner-password-123' },
+  });
+  assert.equal(forged.statusCode, 403);
+});
+
+test('with no admin account yet, the login page says how to create one', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'okeanos-empty-'));
+  const empty = await buildApp({ dataDir, databaseUrl: `file:${path.join(dataDir, 'empty.db')}`, mediaDriver: 'local', logger: false });
+  const response = await empty.inject({
+    method: 'POST', url: '/admin/login', headers: { origin: ORIGIN }, payload: { email: 'me@example.com', password: 'anything-123456' },
+  });
+  assert.equal(response.statusCode, 401);
+  assert.match(response.body, /No admin account exists yet/);
+  await empty.close();
+  fs.rmSync(dataDir, { recursive: true, force: true });
 });

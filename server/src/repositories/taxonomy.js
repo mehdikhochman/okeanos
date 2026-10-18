@@ -7,6 +7,7 @@ export function createCategoriesRepository(db) {
     list: () => db.all(`SELECT c.*, (SELECT COUNT(*) FROM pieces p WHERE p.category_id = c.id AND p.status != 'archived') AS piece_count
                         FROM categories c ORDER BY c.position, c.id`),
     get: (id) => db.get('SELECT * FROM categories WHERE id = ?', [id]),
+    findBySlug: (slug) => db.get('SELECT * FROM categories WHERE slug = ?', [slug]),
     isSlugTaken: async (slug, exceptId = 0) => (await db.value('SELECT COUNT(*) FROM categories WHERE slug = ? AND id != ?', [slug, exceptId])) > 0,
     async create({ slug, name }) {
       return (await db.run('INSERT INTO categories (slug, name, position) VALUES (?, ?, ?)', [slug, name, await positions.nextPosition()])).lastId;
@@ -24,6 +25,7 @@ export function createCollectionsRepository(db) {
     list: () => db.all(`SELECT c.*, (SELECT COUNT(*) FROM piece_collections pc WHERE pc.collection_id = c.id) AS piece_count
                         FROM collections c ORDER BY c.position, c.id`),
     get: (id) => db.get('SELECT * FROM collections WHERE id = ?', [id]),
+    findBySlug: (slug) => db.get('SELECT * FROM collections WHERE slug = ?', [slug]),
     isSlugTaken: async (slug, exceptId = 0) => (await db.value('SELECT COUNT(*) FROM collections WHERE slug = ? AND id != ?', [slug, exceptId])) > 0,
     async create({ slug, name, description, isVisible }) {
       const result = await db.run('INSERT INTO collections (slug, name, description, is_visible, position) VALUES (?, ?, ?, ?, ?)',

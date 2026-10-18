@@ -115,6 +115,8 @@ export function createPiecesRepository(db) {
       }));
     },
 
+    findBySlug: (slug) => db.get('SELECT id, name FROM pieces WHERE slug = ?', [slug]),
+    imageCount: (id) => db.value('SELECT COUNT(*) FROM piece_images WHERE piece_id = ?', [id]),
     getForOrder: (id) => db.get("SELECT id, name, price_cents, availability FROM pieces WHERE id = ? AND status = 'published'", [id]),
     optionLabels: async (id) => (await optionsOf(id)).map((option) => option.label),
 

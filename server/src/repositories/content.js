@@ -78,6 +78,9 @@ export function createSettingsRepository(db, fields) {
       if (!known.length) return;
       await db.batch(known.map(([key, value]) => ({ sql: upsert, args: [key, String(value)] })));
     },
+    // Internal markers (not shown in the settings form), e.g. "the starter catalogue was loaded".
+    getMarker: (key) => db.value('SELECT value FROM settings WHERE key = ?', [`marker:${key}`]),
+    setMarker: (key, value) => db.run(upsert, [`marker:${key}`, String(value)]),
     catalogueVersion: async () => Number(await db.value('SELECT value FROM settings WHERE key = ?', [VERSION_KEY]) ?? 0),
     bumpCatalogueVersion: () => db.run(`INSERT INTO settings (key, value) VALUES (?, '1')
                                         ON CONFLICT (key) DO UPDATE SET value = CAST(value AS INTEGER) + 1`, [VERSION_KEY]),

@@ -5,6 +5,8 @@ import { loginPage } from '../../admin-ui/views/auth.js';
 import { redirect, sendPage } from './helpers.js';
 
 const LOGIN_ERROR = 'That email and password do not match, or the account is locked for 15 minutes after too many attempts.';
+const NO_ACCOUNT_YET = 'No admin account exists yet. In Vercel, set OWNER_EMAIL and OWNER_PASSWORD for this environment '
+  + '(Production and Preview), then redeploy. Locally, run: npm run create-owner -- "you@example.com"';
 
 // Checking a password takes ~50 ms. When the email is unknown we still check one, against this
 // throwaway hash, so response times do not reveal which emails have accounts.
@@ -32,7 +34,9 @@ export async function authRoutes(app) {
     const passwordMatches = await verifyPassword(password, user?.password_hash ?? DUMMY_HASH);
     if (!user || users.isLocked(user) || !passwordMatches) {
       if (user && !users.isLocked(user)) await users.recordFailedLogin(user);
-      return sendPage(reply, loginPage({ error: LOGIN_ERROR, email, next }), 401);
+      // Saying "there are no accounts at all" reveals nothing about any particular email.
+      const message = !user && (await users.count()) === 0 ? NO_ACCOUNT_YET : LOGIN_ERROR;
+      return sendPage(reply, loginPage({ error: message, email, next }), 401);
     }
 
     await users.recordSuccessfulLogin(user.id);

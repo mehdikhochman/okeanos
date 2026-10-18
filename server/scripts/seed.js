@@ -1,5 +1,8 @@
-// Fills an empty database with the pieces found on @okeanosjewels, their photos,
-// the lookbook and the Guide highlight. Run once: `npm run seed`.
+// Loads the starting catalogue: the 11 pieces found on @okeanosjewels with their photos,
+// the lookbook and the Guide highlight, exactly as in the prototype.
+// Runs on every deploy (scripts/setup.js) and from `npm run seed`. It is resumable and runs once:
+//   - each category, piece and photo is added only if missing, so an interrupted run finishes later;
+//   - when everything is in, a marker is saved, and later runs never re-add pieces the shop deleted.
 // Prices are left empty ("Price on request") until the shop sets them in the admin.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -7,10 +10,13 @@ import { config } from '../src/config.js';
 import { openDatabase } from '../src/db/database.js';
 import { createRepositories } from '../src/repositories/index.js';
 import { createMediaStore } from '../src/lib/media.js';
+import { slugify } from '../src/lib/form.js';
 
-const REPO_ROOT = path.resolve(import.meta.dirname, '../..');
-const CUTOUTS = path.join(REPO_ROOT, 'prototype/img');
-const PHOTOS = path.join(REPO_ROOT, 'assets/instagram');
+// The photos ship inside the server folder, so they are there whatever the host copies.
+const SEED_DIR = path.resolve(import.meta.dirname, '../seed');
+const CUTOUTS = path.join(SEED_DIR, 'cutouts');
+const PHOTOS = path.join(SEED_DIR, 'photos');
+const DONE_MARKER = 'starter-catalogue';
 
 const CATEGORIES = ['Earrings', 'Rings', 'Bangles', 'Hand chains', 'Necklaces'];
 
@@ -72,41 +78,46 @@ const GUIDE = [
   ['How do I pay?', 'You pay in cash when your order is delivered.'],
 ];
 
-// Loads the starting catalogue into an empty database. Returns false (and changes nothing)
-// when the shop already has pieces, so it is safe to run on every deploy.
 export async function seedCatalogue({ repos, media, log = console.log }) {
-  const counts = await repos.pieces.countByStatus();
-  if (counts.published + counts.draft + counts.archived > 0) return false;
-  if (!fs.existsSync(PHOTOS) || !fs.existsSync(CUTOUTS)) {
-    log(`Starting photos not found in ${PHOTOS}. Skipping the catalogue; add pieces in the admin instead.`);
-    return false;
-  }
-
-  async function image(file) {
-    return repos.images.save(await media.save(fs.readFileSync(file)));
-  }
+  if (await repos.settings.getMarker(DONE_MARKER)) return false;
+  let added = 0;
+  const image = async (file) => repos.images.save(await media.save(fs.readFileSync(file)));
 
   const categoryIds = {};
-  for (const name of CATEGORIES) categoryIds[name] = await repos.categories.create({ name, slug: name.toLowerCase().replace(/\s+/g, '-') });
-  const summer = await repos.collections.create({ name: 'Summer 2025', slug: 'summer-2025', description: 'The July 2025 drop.', isVisible: true });
+  for (const name of CATEGORIES) {
+    const slug = slugify(name);
+    categoryIds[name] = (await repos.categories.findBySlug(slug))?.id ?? await repos.categories.create({ name, slug });
+  }
+  const summer = (await repos.collections.findBySlug('summer-2025'))?.id
+    ?? await repos.collections.create({ name: 'Summer 2025', slug: 'summer-2025', description: 'The July 2025 drop.', isVisible: true });
 
   for (const piece of PIECES) {
-    const id = await repos.pieces.create({
+    const existing = await repos.pieces.findBySlug(slugify(piece.name));
+    const id = existing?.id ?? await repos.pieces.create({
       name: piece.name, typeLabel: piece.type, categoryId: categoryIds[piece.category], finish: piece.finish ?? 'gold',
       accent: piece.accent ?? 'gold', badge: piece.badge ?? '', isNew: piece.isNew ?? false, description: piece.description,
       priceCents: null, status: 'published', availability: 'made_to_order', optionLabel: piece.optionLabel ?? '',
       instagramUrl: `https://www.instagram.com/p/${piece.post}/`, options: piece.options ?? [], collectionIds: [summer],
     });
+    if ((await repos.pieces.imageCount(id)) > 0) continue; // photos already in from an earlier run
     if (piece.cutout) await repos.pieces.addImage(id, (await image(path.join(CUTOUTS, `${piece.cutout}.webp`))).id, 'cutout', piece.name);
-    for (const photo of piece.photos) await repos.pieces.addImage(id, (await image(path.join(PHOTOS, `${photo}.jpg`))).id, 'photo', piece.name);
+    for (const photo of piece.photos) await repos.pieces.addImage(id, (await image(path.join(PHOTOS, `${photo}.webp`))).id, 'photo', piece.name);
+    added += 1;
     log(`Added ${piece.name}`);
   }
 
-  for (const [photo, caption] of LOOKBOOK) await repos.lookbook.create((await image(path.join(PHOTOS, `${photo}.jpg`))).id, caption);
-  for (const [question, answer] of GUIDE) await repos.guide.create({ question, answer, isVisible: true });
+  if (!(await repos.lookbook.list()).length) {
+    for (const [photo, caption] of LOOKBOOK) await repos.lookbook.create((await image(path.join(PHOTOS, `${photo}.webp`))).id, caption);
+    log(`Added ${LOOKBOOK.length} lookbook photos`);
+  }
+  if (!(await repos.guide.list()).length) {
+    for (const [question, answer] of GUIDE) await repos.guide.create({ question, answer, isVisible: true });
+    log(`Added ${GUIDE.length} guide questions`);
+  }
 
+  await repos.settings.setMarker(DONE_MARKER, new Date().toISOString());
   await repos.activity.log(null, 'seed', 'loaded the starting catalogue from Instagram');
-  log(`Done: ${PIECES.length} pieces, ${LOOKBOOK.length} lookbook photos, ${GUIDE.length} guide entries.`);
+  log(`Starter catalogue ready (${added} pieces added in this run).`);
   return true;
 }
 
