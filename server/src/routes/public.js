@@ -1,8 +1,8 @@
 // Everything a shopper touches: the page, images, fonts and the order endpoint.
 import path from 'node:path';
-import fastifyStatic from '@fastify/static';
 import { config } from '../config.js';
 import { placeOrder, ORDER_BODY_SCHEMA } from './place-order.js';
+import { serveFolderFromMemory, serveMediaFolder } from '../lib/static-files.js';
 
 const PUBLIC_DIR = path.resolve(import.meta.dirname, '../../public');
 const ONE_YEAR_SECONDS = 365 * 24 * 60 * 60;
@@ -29,26 +29,14 @@ export async function publicRoutes(app) {
 
   // Uploaded images: content-hashed names, so they can be cached for a year.
   // (On Vercel they are served by Vercel Blob instead, and there is no local folder.)
-  if (app.media.dir) await app.register(fastifyStatic, {
-    root: app.media.dir,
-    prefix: '/media/',
-    decorateReply: false,
-    index: false,
-    cacheControl: false,
-    allowedPath: (pathName) => /^\/[a-f0-9]{20}-(480|1200)\.webp$/.test(pathName),
-    setHeaders: (reply) => reply.header('cache-control', `public, max-age=${ONE_YEAR_SECONDS}, s-maxage=${ONE_YEAR_SECONDS}, immutable`),
-  });
+  const forever = `public, max-age=${ONE_YEAR_SECONDS}, s-maxage=${ONE_YEAR_SECONDS}, immutable`;
+  if (app.media.dir) serveMediaFolder(app, { prefix: '/media/', root: app.media.dir, cacheControl: forever });
 
-  await app.register(fastifyStatic, {
-    root: PUBLIC_DIR,
+  // Fonts keep their names forever; the icon and error styles may change, so they are cached for a day.
+  serveFolderFromMemory(app, {
     prefix: '/assets/',
-    decorateReply: false,
-    index: false,
-    cacheControl: false,
-    setHeaders: (reply, filePath) => {
-      const isFont = filePath.endsWith('.woff2');
-      reply.header('cache-control', isFont ? `public, max-age=${ONE_YEAR_SECONDS}, s-maxage=${ONE_YEAR_SECONDS}, immutable` : 'public, max-age=86400, s-maxage=86400');
-    },
+    root: PUBLIC_DIR,
+    cacheControl: (name) => (name.endsWith('.woff2') ? forever : 'public, max-age=86400, s-maxage=86400'),
   });
 
   app.get('/robots.txt', async (request, reply) => reply.type('text/plain').send('User-agent: *\nDisallow: /admin\nDisallow: /api\n'));

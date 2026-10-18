@@ -86,3 +86,21 @@ test('a Blob store connected by store ID (no token) is accepted', () => {
   assert.match(output.body, /TURSO_DATABASE_URL/);
   assert.doesNotMatch(output.body, /BLOB_STORE_ID/);
 });
+
+// Vercel's Node runtime cannot require() ES-only packages. A dependency that does so worked
+// locally but crashed every request in production once; this keeps it from happening again.
+test('the app starts on a Node runtime without require() of ES modules', () => {
+  const dataDir = path.join(path.dirname(app.media.dir), 'esm-check');
+  const script = `
+    const { buildApp } = await import('./src/app.js');
+    const app = await buildApp({ dataDir: ${JSON.stringify(dataDir)}, databaseUrl: 'file:${dataDir}/check.db', mediaDriver: 'local', logger: false });
+    await app.ready();
+    console.log('started');
+    await app.close();`;
+  const result = spawnSync(process.execPath, ['--no-experimental-require-module', '--input-type=module', '-e', script], {
+    cwd: path.resolve(import.meta.dirname, '..'),
+    env: { PATH: process.env.PATH },
+    encoding: 'utf8',
+  });
+  assert.match(result.stdout, /started/, result.stderr.split('\n').find((line) => line.includes('Error')) ?? result.stderr);
+});

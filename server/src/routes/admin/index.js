@@ -2,10 +2,10 @@
 // onRequest, so anonymous visitors can never make the server parse an upload.
 import fastifyFormbody from '@fastify/formbody';
 import fastifyMultipart from '@fastify/multipart';
-import fastifyStatic from '@fastify/static';
 import { fileURLToPath } from 'node:url';
 import { config } from '../../config.js';
 import { registerAuth } from '../../plugins/auth.js';
+import { serveFolderFromMemory } from '../../lib/static-files.js';
 import { SPECULATION_RULES } from '../../admin-ui/layout.js';
 import { authRoutes } from './auth.js';
 import { dashboardRoutes } from './dashboard.js';
@@ -43,13 +43,11 @@ export async function adminRoutes(app) {
   app.get('/assets/speculation-rules.json', async (request, reply) =>
     reply.type('application/speculationrules+json').header('cache-control', 'public, max-age=86400').send(SPECULATION_RULES));
 
-  await app.register(fastifyStatic, {
-    root: ASSETS_DIR,
+  // Asset URLs carry a content hash (?v=...), so they can be cached for a year.
+  serveFolderFromMemory(app, {
     prefix: '/assets/',
-    decorateReply: false,
-    index: false,
-    cacheControl: false,
-    setHeaders: (reply) => reply.header('cache-control', `public, max-age=${ONE_YEAR_SECONDS}, s-maxage=${ONE_YEAR_SECONDS}, immutable`),
+    root: ASSETS_DIR,
+    cacheControl: () => `public, max-age=${ONE_YEAR_SECONDS}, s-maxage=${ONE_YEAR_SECONDS}, immutable`,
   });
 
   await app.register(authRoutes);

@@ -108,7 +108,9 @@ How:
 | Package | Why |
 |---|---|
 | `fastify` | Fast HTTP server with built-in schema validation and logging |
-| `@fastify/cookie`, `formbody`, `multipart`, `static`, `rate-limit` | Official plugins for cookies, forms, uploads, files and rate limits; less security-critical code of our own |
+| `@fastify/cookie`, `formbody`, `multipart`, `rate-limit` | Official plugins for cookies, forms, uploads and rate limits; less security-critical code of our own |
+
+Fonts, icons and admin assets are served by `src/lib/static-files.js` (about 60 lines) instead of `@fastify/static`, whose current version crashes on Vercel's Node runtime. A test starts the app with `require()` of ES modules disabled to keep it that way.
 | `@libsql/client` | One driver for a local SQLite file and for Turso |
 | `@vercel/blob` | Photo storage on Vercel |
 | `sharp` | Safe, fast image decoding and WebP encoding |
