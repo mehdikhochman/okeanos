@@ -1,8 +1,7 @@
-// Categories, collections, lookbook and guide: simple ordered lists edited in place.
+// Categories, collections and guide: simple ordered lists edited in place.
 import { html } from '../../lib/html.js';
-import { mediaUrl } from '../../lib/media.js';
 import { layout } from '../layout.js';
-import { actionButton, csrfField, emptyState, errorSummary, moveButtons } from '../components.js';
+import { actionButton, csrfField, errorSummary, moveButtons } from '../components.js';
 
 export function categoriesPage({ ctx, categories, errors = {}, values = {} }) {
   const csrf = ctx.admin.csrf_token;
@@ -59,36 +58,6 @@ export function collectionsPage({ ctx, collections, errors = {}, values = {} }) 
         <label for="f-name">New collection</label>
         <input id="f-name" name="name" value="${values.name ?? ''}" required maxlength="40" placeholder="For example Winter 2025">
         <button class="button" type="submit">Add</button>
-      </form>`,
-  });
-}
-
-export function lookbookPage({ ctx, photos }) {
-  const csrf = ctx.admin.csrf_token;
-  return layout({
-    ctx, title: 'Lookbook', active: 'lookbook',
-    body: html`
-      <p class="help">Photos of the pieces being worn. They scroll sideways on the home page, and the first one also appears as a tile in the shop grid.</p>
-      ${photos.length ? html`<ul class="photo-grid large">${photos.map((photo) => html`<li class="${photo.is_visible ? '' : 'is-hidden'}">
-        <img src="${mediaUrl(photo, 480)}" alt="" loading="lazy">
-        <form method="post" action="/admin/lookbook/${photo.id}" class="stack">
-          ${csrfField(csrf)}
-          <label class="visually-hidden" for="cap-${photo.id}">Caption</label>
-          <input id="cap-${photo.id}" name="caption" value="${photo.caption}" maxlength="120" placeholder="Caption">
-          <label class="check-line"><input type="checkbox" name="is_visible" ${photo.is_visible ? 'checked' : ''}> Visible</label>
-          <button class="button secondary small" type="submit">Save</button>
-        </form>
-        <div class="photo-actions">
-          ${actionButton({ action: `/admin/lookbook/${photo.id}/move`, csrf, label: '←', hidden: { direction: 'up' }, className: 'icon-button' })}
-          ${actionButton({ action: `/admin/lookbook/${photo.id}/move`, csrf, label: '→', hidden: { direction: 'down' }, className: 'icon-button' })}
-          ${actionButton({ action: `/admin/lookbook/${photo.id}/delete`, csrf, label: 'Delete', className: 'link-button danger', confirm: 'Delete this photo?' })}
-        </div></li>`)}</ul>` : emptyState('No lookbook photos yet.')}
-      <form method="post" action="/admin/lookbook" enctype="multipart/form-data" class="panel upload" data-upload>
-        ${csrfField(csrf)}
-        <label for="f-photos" class="label">Add photos</label>
-        <input id="f-photos" name="photos" type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple required>
-        <button class="button" type="submit">Upload</button>
-        <p class="help" data-upload-status role="status"></p>
       </form>`,
   });
 }

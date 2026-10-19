@@ -34,7 +34,7 @@ two Vercel-connected services. Set them up once:
    - `PUBLIC_ORIGIN`: only if you use a custom domain, e.g. `https://okeanos.com`
 5. **Redeploy.** The build runs `npm run vercel-build` (`scripts/setup.js`), which:
    - creates or updates the tables;
-   - loads the 11 Instagram pieces, photos, lookbook and guide from `server/seed/` (once; an
+   - loads the 11 Instagram pieces, photos and guide from `server/seed/` (once; an
      interrupted import finishes on the next deploy, and pieces you delete later never come back);
    - creates your owner account.
 
@@ -78,7 +78,6 @@ npm run bench   # response times of the shop page (server must be running)
 | Orders | Filter by status and search. Each order shows the customer, a WhatsApp/Call button, the address and the map pin. Move it through *New → Confirmed → Being made → Out for delivery → Delivered*. You can add private notes, print a delivery slip and export to CSV |
 | Pieces | Add, edit, duplicate, archive. Prices, badges, "New in", sold out, options with colour dots, collections, photos (resized in the browser before upload), order in the shop, bulk actions |
 | Categories / Collections | The shop's menu and filters |
-| Lookbook | The photos of pieces being worn |
 | Guide | The care, sizing and returns questions |
 | Settings | Announcement, texts, currency, delivery fee, payment note, WhatsApp number, policies, SEO *(owners)* |
 | Team | Add people as *owner* or *editor*, reset passwords *(owners)* |

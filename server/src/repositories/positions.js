@@ -1,7 +1,7 @@
 // Manual ordering ("move up / move down") shared by every list the admin can reorder.
 import { statement } from '../db/database.js';
 
-const ORDERED_TABLES = new Set(['categories', 'collections', 'pieces', 'lookbook_photos', 'guide_entries']);
+const ORDERED_TABLES = new Set(['categories', 'collections', 'pieces', 'guide_entries']);
 
 export function createPositionTools(db, table) {
   if (!ORDERED_TABLES.has(table)) throw new Error(`Not an orderable table: ${table}`);

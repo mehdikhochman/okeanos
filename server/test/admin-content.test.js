@@ -15,7 +15,7 @@ const page = (url) => app.inject({ url, cookies: session.cookies });
 
 test('every admin page renders', async () => {
   for (const url of ['/admin', '/admin/orders', '/admin/pieces', '/admin/pieces/new', `/admin/pieces/${ids.hoopsId}`,
-    '/admin/categories', '/admin/collections', '/admin/lookbook', '/admin/guide', '/admin/settings', '/admin/users',
+    '/admin/categories', '/admin/collections', '/admin/guide', '/admin/settings', '/admin/users',
     '/admin/account', '/admin/activity', '/admin/backup']) {
     const response = await page(url);
     assert.equal(response.statusCode, 200, url);

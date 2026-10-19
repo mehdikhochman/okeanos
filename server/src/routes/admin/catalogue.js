@@ -1,10 +1,8 @@
-// Categories, collections, lookbook photos and guide entries.
+// Categories, collections and guide entries.
 import { FormReader, slugify } from '../../lib/form.js';
 import { notFound } from '../../lib/http-error.js';
-import { categoriesPage, collectionsPage, guidePage, lookbookPage } from '../../admin-ui/views/catalogue.js';
-import {
-  deleteImageIfUnused, pageContext, parseDirection, parseId, recordChange, redirect, sendPage, storeImage, uploadedFiles,
-} from './helpers.js';
+import { categoriesPage, collectionsPage, guidePage } from '../../admin-ui/views/catalogue.js';
+import { pageContext, parseDirection, parseId, recordChange, redirect, sendPage } from './helpers.js';
 
 async function loadOr404(repository, id, what) {
   const row = await repository.get(parseId(id));
@@ -110,46 +108,6 @@ function collectionRoutes(app) {
   });
 }
 
-function lookbookRoutes(app) {
-  const { lookbook } = app.repos;
-
-  app.get('/lookbook', async (request, reply) =>
-    sendPage(reply, lookbookPage({ ctx: await pageContext(app, request), photos: await lookbook.list() })));
-
-  app.post('/lookbook', async (request, reply) => {
-    const files = uploadedFiles(request);
-    for (const file of files) {
-      const image = await storeImage(app, file.value);
-      await lookbook.create(image.id, '');
-    }
-    await recordChange(app, request, 'lookbook.upload', `added ${files.length} lookbook photo(s)`);
-    return redirect(reply, '/admin/lookbook', 'uploaded');
-  });
-
-  app.post('/lookbook/:id', async (request, reply) => {
-    const photo = await loadOr404(lookbook, request.params.id, 'Photo');
-    const form = new FormReader(request.body);
-    await lookbook.update(photo.id, { caption: form.text('caption', { label: 'Caption', max: 120 }) ?? '', isVisible: form.checkbox('is_visible') });
-    await recordChange(app, request, 'lookbook.update', 'edited a lookbook photo');
-    return redirect(reply, '/admin/lookbook', 'saved');
-  });
-
-  app.post('/lookbook/:id/move', async (request, reply) => {
-    const photo = await loadOr404(lookbook, request.params.id, 'Photo');
-    await lookbook.move(photo.id, parseDirection(request.body.direction));
-    await recordChange(app, request, 'lookbook.move', 'reordered the lookbook');
-    return redirect(reply, '/admin/lookbook', 'moved');
-  });
-
-  app.post('/lookbook/:id/delete', async (request, reply) => {
-    const photo = await loadOr404(lookbook, request.params.id, 'Photo');
-    await lookbook.remove(photo.id);
-    await deleteImageIfUnused(app, photo.image_id);
-    await recordChange(app, request, 'lookbook.delete', 'deleted a lookbook photo');
-    return redirect(reply, '/admin/lookbook', 'deleted');
-  });
-}
-
 function guideRoutes(app) {
   const { guide } = app.repos;
   const page = async (request, reply, extra = {}, statusCode = 200) =>
@@ -202,6 +160,5 @@ function guideRoutes(app) {
 export async function catalogueRoutes(app) {
   categoryRoutes(app);
   collectionRoutes(app);
-  lookbookRoutes(app);
   guideRoutes(app);
 }

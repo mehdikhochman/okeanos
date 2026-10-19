@@ -38,12 +38,6 @@
 
   // ---------- Grid ----------
   const grid = $('#grid');
-  const promoPhoto = DATA.lookbook[0];
-  const promo = document.createElement('a');
-  promo.className = 'promo';
-  promo.href = '#lookbook';
-  if (promoPhoto) promo.innerHTML = `${imgTag(promoPhoto, '(min-width: 1100px) 25vw, 50vw', 'loading="lazy"')}<div><b>The lookbook</b><span>See the pieces worn</span></div>`;
-
   const cards = {};
   for (const p of pieces) cards[p.id] = buildCard(p);
 
@@ -107,10 +101,7 @@
   function render() {
     const list = visible();
     grid.replaceChildren();
-    list.forEach((p, i) => {
-      grid.appendChild(cards[p.id]);
-      if (i === 3 && promoPhoto && !activeCount()) grid.appendChild(promo); // editorial tile, only unfiltered
-    });
+    for (const p of list) grid.appendChild(cards[p.id]);
     if (!list.length) {
       const empty = document.createElement('p');
       empty.className = 'no-results';
@@ -426,15 +417,6 @@
     d.addEventListener('click', (e) => { if (e.target === d) d.close(); }); // click on the scrim
   });
 
-  // ---------- Lookbook ----------
-  const lookEl = $('#look');
-  if (!DATA.lookbook.length) $('#lookbook').hidden = true;
-  for (const photo of DATA.lookbook) {
-    const fig = document.createElement('figure');
-    fig.innerHTML = `${imgTag(photo, '(min-width: 760px) 28vw, 70vw', 'loading="lazy"')}<figcaption>${esc(photo.caption)}</figcaption>`;
-    fig.querySelector('img').alt = photo.caption;
-    lookEl.appendChild(fig);
-  }
   renderBag();
 
   // ---------- Header turns solid once the big wordmark has passed under it ----------

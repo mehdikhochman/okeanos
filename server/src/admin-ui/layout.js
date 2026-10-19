@@ -15,7 +15,6 @@ const NAV = [
   { href: '/admin/pieces', label: 'Pieces', key: 'pieces' },
   { href: '/admin/categories', label: 'Categories', key: 'categories' },
   { href: '/admin/collections', label: 'Collections', key: 'collections' },
-  { href: '/admin/lookbook', label: 'Lookbook', key: 'lookbook' },
   { href: '/admin/guide', label: 'Guide', key: 'guide' },
   { href: '/admin/settings', label: 'Settings', key: 'settings', ownerOnly: true },
   { href: '/admin/users', label: 'Team', key: 'users', ownerOnly: true },

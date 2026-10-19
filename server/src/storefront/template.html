@@ -281,32 +281,7 @@ svg.i { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-widt
 .sw span { display: block; width: 100%; height: 100%; border-radius: 50%; border: 1px solid rgba(3, 37, 55, .15); }
 .sw[aria-pressed="true"] { border-color: var(--abyss); }
 
-/* Promo tile inside the grid */
-.promo {
-  position: relative; aspect-ratio: 3 / 4; overflow: hidden; display: grid; align-content: end;
-  color: var(--stroke); text-decoration: none; background: var(--abyss);
-}
-.promo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.promo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(3, 37, 55, .78), transparent 58%); }
-.promo div { position: relative; z-index: 1; display: grid; gap: 10px; padding: 16px; justify-items: start; }
-.promo b { font: 400 clamp(1.3rem, 4.6vw, 1.9rem)/1.1 var(--display); }
-.promo span { font-size: .9rem; text-decoration: underline; text-underline-offset: .2em; }
-.promo:hover { color: var(--stroke); }
-.promo[hidden] { display: none; }
 .no-results { color: var(--silt); grid-column: 1 / -1; }
-
-/* Lookbook */
-.look {
-  display: flex; gap: clamp(12px, 2vw, 22px); overflow-x: auto; scroll-snap-type: x mandatory;
-  margin-top: 32px; padding-bottom: 18px;
-  padding-left: var(--gutter-l); padding-right: var(--gutter-r);
-  scrollbar-color: var(--shade) transparent;
-}
-.look figure { margin: 0; flex: 0 0 clamp(220px, 70vw, 340px); scroll-snap-align: start; display: grid; gap: 10px; }
-@media (min-width: 760px) { .look figure { flex-basis: clamp(240px, 28vw, 340px); } }
-.look img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; }
-.look figcaption { font-size: .9rem; color: var(--silt); }
-.look-wrap { max-width: 1360px; margin-inline: auto; }
 
 /* About */
 .about { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: clamp(28px, 5vw, 64px); margin-top: 36px; }
@@ -520,7 +495,6 @@ legend b { color: var(--abyss); font-weight: 500; }
       <nav class="bar-nav" aria-label="Shop">
         <a href="#shop" data-cat="new">New in</a>
         {{{nav_category_links}}}
-        <a href="#lookbook">Lookbook</a>
         <a href="#about">About</a>
         <a href="#guide">Guide</a>
       </nav>
@@ -565,16 +539,6 @@ legend b { color: var(--abyss); font-weight: 500; }
       </div>
     </section>
 
-    <section class="sec" id="lookbook" aria-labelledby="look-h">
-      <div class="wrap">
-        <div class="sec-head">
-          <h2 id="look-h">Lookbook</h2>
-          <p>Pieces worn on the Lebanese coast.</p>
-        </div>
-      </div>
-      <div class="look-wrap"><div class="look" id="look" tabindex="0" aria-label="Lookbook photos (scroll sideways)"></div></div>
-    </section>
-
     <section class="sec" id="about" aria-labelledby="about-h">
       <div class="wrap">
         <div class="sec-head">
@@ -599,7 +563,6 @@ legend b { color: var(--abyss); font-weight: 500; }
         <div>
           <h4>{{brand_name}}</h4>
           <ul>
-            <li><a href="#lookbook">Lookbook</a></li>
             <li><a href="#about">About</a></li>
             <li><a href="#guide">Care · sizing · returns</a></li>
           </ul>
@@ -621,7 +584,6 @@ legend b { color: var(--abyss); font-weight: 500; }
     <div class="d-body">
       <ul class="menu-list" id="menuList"></ul>
       <div class="menu-extra">
-        <a href="#lookbook" data-close-nav>Lookbook</a>
         <a href="#about" data-close-nav>About {{brand_name}}</a>
         <a href="#guide" data-close-nav>Care · sizing · returns</a>
       </div>

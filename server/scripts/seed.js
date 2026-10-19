@@ -1,5 +1,5 @@
 // Loads the starting catalogue: the 11 pieces found on @okeanosjewels with their photos,
-// the lookbook and the Guide highlight, exactly as in the prototype.
+// and the Guide highlight, exactly as in the prototype.
 // Runs on every deploy (scripts/setup.js) and from `npm run seed`. It is resumable and runs once:
 //   - each category, piece and photo is added only if missing, so an interrupted run finishes later;
 //   - when everything is in, a marker is saved, and later runs never re-add pieces the shop deleted.
@@ -58,16 +58,6 @@ const PIECES = [
     photos: ['DMflnuQMd3h_4', 'DMflnuQMd3h_2'], post: 'DMflnuQMd3h' },
 ];
 
-const LOOKBOOK = [
-  ['DMsDbsas31f_1', 'Hand chain with dome ring and bangles'],
-  ['DMnLYtns6xk_4', 'Loop Bangle stacked'],
-  ['DMYERJ6MmlI_2', 'Summer hoops in pastel'],
-  ['DMSkuxiMeaq_4', 'Summer hoops split between friends'],
-  ['DMflnuQMd3h_2', 'Hand chain and satellite necklace'],
-  ['DMVYoCYsFC8_4', 'Rose gold rings'],
-  ['DMsDbsas31f_4', 'Small hoops and dome ring'],
-];
-
 // From the "Guide" story highlight on Instagram.
 const GUIDE = [
   ['How do I make my jewellery last longer?',
@@ -106,10 +96,6 @@ export async function seedCatalogue({ repos, media, log = console.log }) {
     log(`Added ${piece.name}`);
   }
 
-  if (!(await repos.lookbook.list()).length) {
-    for (const [photo, caption] of LOOKBOOK) await repos.lookbook.create((await image(path.join(PHOTOS, `${photo}.webp`))).id, caption);
-    log(`Added ${LOOKBOOK.length} lookbook photos`);
-  }
   if (!(await repos.guide.list()).length) {
     for (const [question, answer] of GUIDE) await repos.guide.create({ question, answer, isVisible: true });
     log(`Added ${GUIDE.length} guide questions`);

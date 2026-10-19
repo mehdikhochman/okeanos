@@ -1,4 +1,4 @@
-// Images, lookbook photos, guide entries, settings and the activity log.
+// Images, guide entries, settings and the activity log.
 import { createPositionTools } from './positions.js';
 
 export function createImagesRepository(db) {
@@ -14,29 +14,11 @@ export function createImagesRepository(db) {
     async removeIfUnused(id) {
       const image = await db.get('SELECT * FROM images WHERE id = ?', [id]);
       if (!image) return null;
-      const usage = await db.value(`SELECT (SELECT COUNT(*) FROM piece_images WHERE image_id = ?)
-                                         + (SELECT COUNT(*) FROM lookbook_photos WHERE image_id = ?)`, [id, id]);
+      const usage = await db.value('SELECT COUNT(*) FROM piece_images WHERE image_id = ?', [id]);
       if (usage > 0) return null;
       await db.run('DELETE FROM images WHERE id = ?', [id]);
       return image;
     },
-  };
-}
-
-export function createLookbookRepository(db) {
-  const positions = createPositionTools(db, 'lookbook_photos');
-  const list = () => db.all(`SELECT l.*, i.file_key, i.width, i.height, i.base_url FROM lookbook_photos l
-                             JOIN images i ON i.id = l.image_id ORDER BY l.position, l.id`);
-  return {
-    list,
-    listVisible: async () => (await list()).filter((photo) => photo.is_visible),
-    get: (id) => db.get('SELECT * FROM lookbook_photos WHERE id = ?', [id]),
-    async create(imageId, caption) {
-      return (await db.run('INSERT INTO lookbook_photos (image_id, caption, position) VALUES (?, ?, ?)', [imageId, caption, await positions.nextPosition()])).lastId;
-    },
-    update: (id, { caption, isVisible }) => db.run('UPDATE lookbook_photos SET caption = ?, is_visible = ? WHERE id = ?', [caption, isVisible, id]),
-    remove: (id) => db.run('DELETE FROM lookbook_photos WHERE id = ?', [id]),
-    move: positions.move,
   };
 }
 

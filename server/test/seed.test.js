@@ -21,13 +21,12 @@ after(async () => {
 
 const quiet = () => {};
 
-test('loads the 11 pieces with their photos, the lookbook and the guide', async () => {
+test('loads the 11 pieces with their photos and the guide', async () => {
   assert.equal(await seedCatalogue({ repos: app.repos, media: app.media, log: quiet }), true);
   const pieces = await app.repos.pieces.listPublished();
   assert.equal(pieces.length, 11);
   assert.ok(pieces.every((piece) => piece.images.length > 0), 'every piece has photos');
   assert.equal(pieces.filter((piece) => piece.images.some((image) => image.role === 'cutout')).length, 7);
-  assert.equal((await app.repos.lookbook.list()).length, 7);
   assert.equal((await app.repos.guide.list()).length, 4);
   const page = (await app.inject({ url: '/' })).body;
   assert.match(page, /"name":"Summer hoops"/);
@@ -39,8 +38,8 @@ test('the shop page shows no commas', async () => {
   const visibleText = page.replace(/<head>[\s\S]*?<\/head>|<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ');
   assert.equal(visibleText.match(/.{0,40},.{0,40}/)?.[0], undefined);
   for (const [, attribute] of page.matchAll(/(?:alt|placeholder|aria-label|title)="([^"]*)"/g)) assert.doesNotMatch(attribute, /,/);
-  const { pieces, lookbook } = JSON.parse(page.match(/<script id="catalogue" type="application\/json">([\s\S]*?)<\/script>/)[1]);
-  for (const text of [...pieces.flatMap((p) => [p.name, p.type, p.desc]), ...lookbook.map((photo) => photo.caption)]) assert.doesNotMatch(text, /,/);
+  const { pieces } = JSON.parse(page.match(/<script id="catalogue" type="application\/json">([\s\S]*?)<\/script>/)[1]);
+  for (const text of pieces.flatMap((p) => [p.name, p.type, p.desc])) assert.doesNotMatch(text, /,/);
   assert.doesNotMatch(page.match(/<title>(.*)<\/title>/)[1], /,/);
 });
 

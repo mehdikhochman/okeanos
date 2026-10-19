@@ -119,8 +119,8 @@ function toPublicPiece(piece) {
 }
 
 async function buildCatalogue(repos, settings) {
-  const [published, categories, collections, lookbook] = await Promise.all([
-    repos.pieces.listPublished(), repos.categories.list(), repos.collections.list(), repos.lookbook.listVisible(),
+  const [published, categories, collections] = await Promise.all([
+    repos.pieces.listPublished(), repos.categories.list(), repos.collections.list(),
   ]);
   const pieces = published.map(toPublicPiece);
   const usedCategories = new Set(pieces.map((piece) => piece.cat));
@@ -130,7 +130,6 @@ async function buildCatalogue(repos, settings) {
     pieces,
     categories: categories.filter((c) => usedCategories.has(c.slug)).map(({ slug, name }) => ({ slug, name })),
     collections: collections.filter((c) => c.is_visible && usedCollections.has(c.slug)).map(({ slug, name }) => ({ slug, name })),
-    lookbook: lookbook.map((photo) => ({ ...imageFor(photo), caption: photo.caption })),
     settings: {
       currency: settings.currency,
       deliveryCents: settings.delivery_fee === '' ? null : Number(settings.delivery_fee),
@@ -141,7 +140,7 @@ async function buildCatalogue(repos, settings) {
 }
 
 function pageValues(settings, catalogue, guideEntries) {
-  const ogPhoto = catalogue.lookbook[0] ?? catalogue.pieces.find((piece) => piece.photos[0])?.photos[0];
+  const ogPhoto = catalogue.pieces.find((piece) => piece.photos[0])?.photos[0];
   return {
     ...settings,
     public_origin: config.publicOrigin,

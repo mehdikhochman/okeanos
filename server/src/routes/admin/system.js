@@ -5,7 +5,7 @@ import { logActivity, pageContext, parsePage, sendPage } from './helpers.js';
 const PAGE_SIZE = 50;
 // Everything needed to rebuild the shop. Sessions are left out on purpose: they are login keys.
 const BACKUP_TABLES = ['settings', 'users', 'categories', 'collections', 'images', 'pieces', 'piece_options',
-  'piece_images', 'piece_collections', 'lookbook_photos', 'guide_entries', 'orders', 'order_items', 'activity_log'];
+  'piece_images', 'piece_collections', 'guide_entries', 'orders', 'order_items', 'activity_log'];
 
 export async function systemRoutes(app) {
   const { activity, db } = app.repos;

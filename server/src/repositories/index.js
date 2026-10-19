@@ -5,7 +5,7 @@ import { createCategoriesRepository, createCollectionsRepository } from './taxon
 import { createPiecesRepository } from './pieces.js';
 import { createOrdersRepository } from './orders.js';
 import {
-  createImagesRepository, createLookbookRepository, createGuideRepository,
+  createImagesRepository, createGuideRepository,
   createSettingsRepository, createActivityRepository,
 } from './content.js';
 import { SETTINGS_FIELDS } from './settings-fields.js';
@@ -20,7 +20,6 @@ export function createRepositories(db) {
     pieces: createPiecesRepository(db),
     orders: createOrdersRepository(db),
     images: createImagesRepository(db),
-    lookbook: createLookbookRepository(db),
     guide: createGuideRepository(db),
     settings: createSettingsRepository(db, SETTINGS_FIELDS),
     activity: createActivityRepository(db),
